@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Card as CardType } from '@/types';
 import { useGameStore } from '@/store/gameStore';
+import { motion } from 'framer-motion';
 
 interface CardProps {
     card: CardType;
@@ -22,6 +23,8 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     const triggerCandidates = useGameStore(state => state.triggerCandidates) || []; // Default to empty if undefined during init
     const resolveTrigger = useGameStore(state => state.resolveTrigger);
     const resolveTarget = useGameStore(state => state.resolveTarget); // Need to keep resolveTarget
+    const isReplaying = useGameStore(state => state.isReplaying);
+    const activeEffectCardId = useGameStore(state => state.activeEffectCardId);
 
     const isTargeting = targetingState.isOpen;
     const targetFilter = targetingState.filter;
@@ -34,7 +37,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: dragId || card.id, // Use dragId if provided, else card.id
         data: { card }, // Pass card data for event handlers
-        disabled: isOverlay || isTargeting || isExtraDeckCard || disableDrag, // Removed isTriggerCandidate to allow Summon/Set (Passing priority)
+        disabled: isOverlay || isTargeting || isExtraDeckCard || disableDrag || isReplaying, // Removed isTriggerCandidate to allow Summon/Set (Passing priority)
     });
 
     const isValidTarget = isTargeting && targetFilter && targetFilter(card);
@@ -55,7 +58,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         const store = useGameStore.getState();
 
         // Overlay cards (materials) should not be clickable for targeting/effects
-        if (isOverlay) {
+        if (isOverlay || isReplaying) {
             return;
         }
 
@@ -134,9 +137,8 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     const attachedMaterials = materials[card.id] || [];
 
     return (
-        <div
+        <motion.div
             ref={setNodeRef}
-            style={style}
             {...listeners}
             {...attributes}
             className={`
@@ -146,10 +148,20 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
                 ${isTargeting && !isValidTarget ? 'opacity-50 grayscale' : ''}
                 ${isSelected ? 'ring-4 ring-blue-500' : ''}
                 ${isDragging ? 'opacity-50' : ''}
-                transition-all duration-200
                 hover:scale-105
             `}
+            // Removed transition-all duration-200 to let framer motion handle it
             onClick={handleClick}
+            style={{
+                ...style,
+                transform: CSS.Translate.toString(transform),
+            }}
+            animate={activeEffectCardId === card.id ? {
+                boxShadow: ["0px 0px 0px 0px rgba(0, 255, 0, 0)", "0px 0px 20px 10px rgba(0, 255, 0, 0.8)", "0px 0px 0px 0px rgba(0, 255, 0, 0)"],
+                scale: [1, 1.1, 1],
+                borderColor: ["#444", "#00ff00", "#444"],
+            } : undefined}
+            transition={{ duration: 0.5, times: [0, 0.5, 1] }}
         >
             {/* Render Materials Underneath */}
             {!isOverlay && attachedMaterials.length > 0 && attachedMaterials.map((matId, idx) => (
@@ -226,7 +238,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
                 </div>
             )}
 
-        </div>
+        </motion.div>
     );
 }
 

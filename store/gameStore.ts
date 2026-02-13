@@ -118,7 +118,7 @@ const sortExtraDeck = (instanceIds: string[], cards: { [id: string]: Card }): st
 };
 
 // Effect helper logic
-const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromLocation?: string) => void } = {
+const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromLocation?: string, summonVariant?: string) => void } = {
     // DDD Cursed King Siegfried Logic
     'c020': (store, selfId, fromLocation) => {
         // Effect 1: Negate S/T (Quick) - Not implemented for Solo as per request.
@@ -356,14 +356,12 @@ const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromL
         }
     },
     // DD Count Surveyor Logic (c012)
-    'c012': (store, selfId, fromLocation) => {
-        // Debug Log
-        if (!fromLocation) {
-            store.addLog(`Debug: Activating Count Surveyor (c012). Hand: ${store.hand.includes(selfId)}`);
-        }
-        // [Hand Effect] Discard other DD to SS from Hand
+    'c012': (store, selfId, fromLocation, summonVariant) => {
         const inHand = store.hand.includes(selfId);
-        if (inHand && !fromLocation) {
+        const inMZ = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
+
+        // [Hand Effect]
+        if (inHand && !inMZ && !fromLocation && !store.isHistoryBatching && summonVariant !== 'PENDULUM' && !store.isBatching) {
             if (!store.turnEffectUsage['c012_hand_ss']) {
                 store.startEffectSelection('Count Surveyor: SS from Hand?', [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], (choice) => {
                     if (choice === 'yes') {
@@ -442,25 +440,15 @@ const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromL
         }
     },
     // DD Gryphon Logic (c013)
-    'c013': (store, selfId, fromLocation) => {
-        if (!fromLocation) {
-            store.addLog(`Debug: Activating Gryphon (c013). Hand: ${store.hand.includes(selfId)}`);
-        }
-        // [Hand Effect] SS from Hand
-        // Allow activation if triggered manually (!fromLocation) OR if explicitly moved from 'HAND' (fromLocation === 'HAND')
-
+    'c013': (store, selfId, fromLocation, summonVariant) => {
         const inHand = store.hand.includes(selfId);
-        const inMZ = store.monsterZones.includes(selfId);
-        const inEMZ = store.extraMonsterZones.includes(selfId);
+        const inMZ = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
         const inGY = store.graveyard.includes(selfId);
         const inED = store.extraDeck.includes(selfId);
+        const inSTZ = store.spellTrapZones.includes(selfId);
 
-        // Debug Log
-        if (fromLocation === 'HAND' || !fromLocation) {
-            // console.log(`Debug c013: Loc=${fromLocation}, Hand=${inHand}, MZ=${inMZ}, EMZ=${inEMZ}, GY=${inGY}`);
-        }
-
-        if (!inGY && !inED && inHand && !fromLocation) { // Removed store.isDragging check
+        // [Hand Effect] SS from Hand
+        if (inHand && !inMZ && !inGY && !inED && !fromLocation && !store.isHistoryBatching && summonVariant !== 'PENDULUM' && !store.isBatching) {
             if (store.turnEffectUsage['c013_hand_ss']) return;
 
             // Check if we control a "DD" Monster
@@ -629,12 +617,14 @@ const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromL
     },
 
     // DD Orthros Logic (c011)
-    'c011': (store, selfId, fromLocation) => {
+    'c011': (store, selfId, fromLocation, summonVariant) => {
         // [P-Effect] Target 1 DD/Contract + 1 S/T -> Destroy
         // Activated when in Spell/Trap Zone (P-Zone)
         if (store.spellTrapZones.includes(selfId)) {
             // Prevent auto-trigger if just placed? Typically P-Effects are Ignition-like.
-            if (fromLocation) return;
+            if (fromLocation && fromLocation !== 'TRIGGER') return;
+            // Behavior check: if fromLocation is provided, it must be the ONLY location for some specific triggers.
+            // But ignition P-Effects don't have fromLocation.
 
             store.startEffectSelection('Orthros P-Effect: Destroy Cards?', [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], (choice) => {
                 if (choice === 'yes') {
@@ -669,11 +659,11 @@ const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromL
             return;
         }
 
-        // [Monster Effect] Special Summon when taking damage (or triggered by Gilgamesh/Ragnarok as per user request)
-        // User requested: If Orthros is in Hand, it glows Green when Gilgamesh/Ragnarok activates.
-        // Clicking it triggers SS.
-        // The trigger system calls EFFECT_LOGIC with fromLocation='TRIGGER'.
-        if (fromLocation === 'TRIGGER') {
+        const inHand = store.hand.includes(selfId);
+        const inMZ = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
+
+        // [Monster Effect] Special Summon when taking damage (or triggered by Gilgamesh/Ragnarok)
+        if (inHand && !inMZ && fromLocation === 'TRIGGER' && summonVariant !== 'PENDULUM' && !store.isBatching) {
             store.startEffectSelection('Special Summon Orthros from Hand?', [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }], (choice) => {
                 if (choice === 'yes') {
                     // SS from Hand
@@ -693,10 +683,13 @@ const EFFECT_LOGIC: { [cardId: string]: (store: GameStore, selfId: string, fromL
         }
     },
     // DD Scale Surveyor Logic (c014)
-    'c014': (store, selfId, fromLocation) => {
-        // [Hand Effect] If control "DD" P-Monster Card, SS from Hand
+    'c014': (store, selfId, fromLocation, summonVariant) => {
         const inHand = store.hand.includes(selfId);
-        if (inHand && !fromLocation) { // Removed store.isDragging check
+        const inMZ = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
+        const inSTZ = store.spellTrapZones.includes(selfId);
+
+        // [Hand Effect]
+        if (inHand && !inMZ && !inSTZ && !fromLocation && !store.isHistoryBatching && summonVariant !== 'PENDULUM' && !store.isBatching) {
             if (store.turnEffectUsage['c014_hand_ss']) { // Corrected usage key from c012 to c014
                 store.addLog('Scale Surveyor: Hand SS used already this turn.');
                 return;
@@ -1987,7 +1980,7 @@ interface GameStore extends GameState {
     // Actions
     initializeGame: (cardDefs: CardDatabase, deckList: string[]) => void;
     // Move Card Generic Action
-    moveCard: (cardId: string, toZone: ZoneType, toIndex?: number, fromLocation?: string, suppressTrigger?: boolean, isSpecialSummon?: boolean, summonVariant?: string) => void;
+    moveCard: (cardId: string, toZone: ZoneType, toIndex?: number, fromLocation?: string, suppressTrigger?: boolean, isSpecialSummon?: boolean, summonVariant?: string, suppressLog?: boolean) => void;
     changeLP: (amount: number) => void;
     addLog: (message: string) => void;
     setDragState: (isDragging: boolean, id: string | null) => void;
@@ -2054,6 +2047,12 @@ interface GameStore extends GameState {
     isTellBuffActive: boolean;
     isEffectActivated: boolean;
     initialExtraDeckCardIds: string[]; // Card IDs (not instance IDs) from initial Extra Deck
+
+    // Replay Actions
+    startReplay: () => void;
+    stopReplay: () => void;
+    setReplaySpeed: (speed: number) => void;
+    nextReplayStep: () => void;
 }
 
 
@@ -2139,7 +2138,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     },
     cardPropertyModifiers: {},
     modifyCardProperty: (cardId, property, value, operation) => {
-        get().pushHistory();
         set((state) => {
             const modifiers = { ...state.cardPropertyModifiers };
             if (!modifiers[cardId]) modifiers[cardId] = {};
@@ -2155,6 +2153,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             modifiers[cardId] = { ...currentMod, [property]: newValue };
             return { cardPropertyModifiers: modifiers };
         });
+        get().pushHistory();
     },
 
     processPendingEffects: () => {
@@ -2244,7 +2243,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // If we reach here, the Queue is empty and UI is not busy.
         // Release the Global Lock.
         if (state.isEffectActivated) {
-            useGameStore.setState({ isEffectActivated: false });
+            useGameStore.setState({ isEffectActivated: false, lastEffectSourceId: null });
         }
     },
 
@@ -2374,17 +2373,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     return 0;
                 });
 
-                placements.forEach(p => {
-                    // Suppress Trigger? No, Simultaneous means triggers happen after.
-                    // But we don't have batch. We do sequential.
-                    // Special Summon = true.
-                    moveCard(p.id, p.type, p.zoneIndex, undefined, false, true, 'PENDULUM');
-                });
-                addLog(`Pendulum Summoned ${placements.length} monsters.`);
-                set((prev) => ({
-                    pendulumSummonCount: prev.pendulumSummonCount + 1,
-                    pendulumSummoned: undefined // Remove old prop if it lingers in types during dev
-                }));
+                // --- BATCHED PENDULUM SUMMON ---
+                useGameStore.setState({ isBatching: true, isHistoryBatching: true });
+                try {
+                    placements.forEach(p => {
+                        const fromLoc = get().hand.includes(p.id) ? 'HAND' : 'EXTRA_DECK';
+                        get().moveCard(p.id, p.type, p.zoneIndex, fromLoc, false, true, 'PENDULUM');
+                    });
+                    addLog(`Pendulum Summoned ${placements.length} monsters.`);
+                    set((prev) => ({
+                        pendulumSummonCount: prev.pendulumSummonCount + 1,
+                    }));
+                } finally {
+                    get().processPendingEffects();
+                    useGameStore.setState({ isBatching: false, isHistoryBatching: false });
+                    get().pushHistory();
+                }
                 return;
             }
 
@@ -2626,12 +2630,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
             targetingState: { isOpen: false, filter: null, onSelect: null, mode: 'normal' },
             zoneSelectionState: { isOpen: false, title: '', filter: null, onSelect: null },
             history: [], // Reset history
+
+            isReplaying: false,
+            replaySpeed: 1,
+            replayIndex: 0,
+            replayBackupState: null,
+            activeEffectCardId: null,
         });
+        get().pushHistory(); // Capture initial state
     },
 
 
-    moveCard: (cardId, toZone, toIndex = 0, fromLocation = undefined, suppressTrigger = false, isSpecialSummon = false, summonVariant = undefined) => {
-        get().pushHistory();
+    moveCard: (cardId, toZone, toIndex = 0, fromLocation = undefined, suppressTrigger = false, isSpecialSummon = false, summonVariant = undefined, suppressLog = false) => {
         const startState = get(); // Fresh state before move
         const state = startState; // Alias for compatibility with existing code
         const { isDragging, activeDragId } = startState;
@@ -2678,10 +2688,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
             get().addLog('DD Orthros P-Effect limit reset (placed in P-Zone).');
         }
 
-        // Clear Trigger Candidates logic REMOVED (Ensures Temujin/Ragnarok triggers persist during complex effect resolutions like Gilgamesh)
-        // if (startState.triggerCandidates.length > 0 && !suppressTrigger) {
-        //     useGameStore.setState({ triggerCandidates: [] });
-        // }
+        // Clear Trigger Candidates logic
+        // Only clear if this is a fresh user action (not part of a batch/sequence)
+        // AND not an automated material move.
+        if (startState.triggerCandidates.length > 0 && !suppressTrigger && !startState.isBatching && !startState.isLinkSummoningActive && !startState.isEffectActivated && !startState.isMaterialMove) {
+            useGameStore.setState({ triggerCandidates: [] });
+        }
 
 
         // 0. EMZ Restriction (Block drag if other is occupied)
@@ -2785,6 +2797,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         });
                         // 2. Summon Zeus
                         get().moveCard(cardId, toZone, toIndex, 'EXTRA_DECK', false, true);
+
+                        // Fix: Zeus Ragnarok (c028) is Ignition, so ensure it doesn't stay in triggerCandidates
+                        useGameStore.setState(prev => ({ triggerCandidates: prev.triggerCandidates.filter(id => id !== cardId) }));
+
                         useGameStore.setState({ isLinkSummoningActive: false, isMaterialMove: false });
                         get().addLog('Link Summoned DDD Sky King Zeus Ragnarok.');
                         return;
@@ -2850,9 +2866,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             // Trigger Flags (to be used post-flush)
             let isDestructionEvt = false;
+
             let isDDDOrContractDestroyed = false;
             let isArkCrisisDestroyed = false;
             let isCaesarGraveEvt = false;
+            let detachedMaterialsForTrigger: string[] = []; // Capture detached materials for processing
 
             set((state) => {
                 const { cards } = state;
@@ -3134,7 +3152,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const nextState = {
                     ...state,
                     ...newState,
-                    logs: [logMsg, ...state.logs]
+                    logs: suppressLog ? state.logs : [logMsg, ...state.logs]
                 };
 
                 // --- MATERIAL DETACHMENT LOGIC ---
@@ -3162,6 +3180,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     if (!state.isMaterialMove && !state.isLinkSummoningActive) {
                         logMsg += ` (Materials sent to GY)`;
                     }
+
+                    // Capture for trigger processing
+                    detachedMaterialsForTrigger = materialsToDetach;
                 }
 
                 // --- LEVEL RESET ON LEAVING FIELD ---
@@ -3206,6 +3227,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (isCaesar && sentToGY && !state.isLinkSummoningActive && !state.isMaterialMove) {
                     isCaesarGraveEvt = true;
                 }
+
+
 
                 // Update Logs
                 // We appended to logMsg earlier, now we ensure it's in the state trigger
@@ -3287,6 +3310,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
 
 
+
+
+
             // --- VISUAL CUE LOGIC (Genghis/Ragnarok) ---
             // --- VISUAL CUE LOGIC (Genghis/Ragnarok) ---
             // Determine if Normal Summon occurred (re-derived since local var inside set() is inaccessible)
@@ -3363,19 +3389,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const hoptExempt = ['c021', 'c012', 'c009']; // Tell, Count Surveyor, and Copernicus manage own HOPT
                 const usage = s.turnEffectUsage[cid] || 0;
 
+
                 if (hoptExempt.includes(cid) || usage < 1) {
                     const finalLoc = determinedFromLocation;
-                    useGameStore.setState({ isEffectActivated: false }); // Reset before call
+
+                    // Capture prior effect state to restore if this move doesn't trigger anything NEW
+                    const priorEffectActive = get().isEffectActivated;
+                    const priorSourceId = get().lastEffectSourceId;
+
+                    // Set potential new source
+                    useGameStore.setState({ lastEffectSourceId: cardId });
+                    useGameStore.setState({ isEffectActivated: false }); // Reset to detect activation
 
                     if (state.isBatching) {
                         useGameStore.setState(prev => ({
-                            pendingEffects: [...prev.pendingEffects, () => EFFECT_LOGIC[cid](get(), cardId, finalLoc)]
+                            pendingEffects: [...prev.pendingEffects, () => EFFECT_LOGIC[cid](get(), cardId, finalLoc, summonVariant)]
                         }));
+                        // Restore prior state immediately for batching queue? 
+                        // Actually batching queue handles execution later.
+                        // But we want 'lastEffectSourceId' to be correct for the NEXT item in batch?
+                        // If we queue it, 'lastEffectSourceId' is transient.
+                        // Let's rely on queue execution context.
+                        if (priorEffectActive) {
+                            useGameStore.setState({ isEffectActivated: true, lastEffectSourceId: priorSourceId });
+                        }
                     } else {
-                        EFFECT_LOGIC[cid](get(), cardId, finalLoc);
+                        EFFECT_LOGIC[cid](get(), cardId, finalLoc, summonVariant);
+
+                        // If the effect logic didn't result in activation (isEffectActivated false),
+                        // AND we were previously in an active effect (priorEffectActive true),
+                        // then RESTORE the previous source ID (e.g. Kepler searching -> Kepler remains source).
+                        const didActivate = get().isEffectActivated;
+
+                        if (!didActivate && priorEffectActive) {
+                            useGameStore.setState({ isEffectActivated: true, lastEffectSourceId: priorSourceId });
+                        }
 
                         // Only increment if effect actually "activated" something (and not deferred)
-                        if (!hoptExempt.includes(cid) && get().isEffectActivated) {
+                        if (!hoptExempt.includes(cid) && didActivate) {
                             get().addTurnEffectUsage(cid);
                         }
                     }
@@ -3383,16 +3434,51 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     // Triggers usually don't log HOPT failure to avoid noise
                 }
             }
+
+            // --- DETACHED MATERIAL TRIGGERS ---
+            if (detachedMaterialsForTrigger.length > 0) {
+                const currentS = get();
+                detachedMaterialsForTrigger.forEach(matId => {
+                    const matDef = currentS.cards[matId];
+                    if (matDef && EFFECT_LOGIC[matDef.cardId]) {
+                        // Specifically for Scale Surveyor (c014):
+                        // Logic: if ((store.graveyard.includes(selfId) || store.extraDeck.includes(selfId)) && fromLocation)
+                        // We pass 'MATERIAL' as fromLocation.
+
+                        // We should respect HOPT etc managed by EFFECT_LOGIC or the function itself.
+                        // c014 handles its own HOPT check inside.
+
+                        // Run trigger logic
+                        EFFECT_LOGIC[matDef.cardId](currentS, matId, 'MATERIAL');
+                    }
+                });
+            }
         } finally {
             if (!wasBatching) {
-                useGameStore.setState({ isBatching: false, isLinkSummoningActive: false, lastEffectSourceId: null });
+                // If an effect was activated (e.g. Kepler prompt opened), 
+                // we PERSIST the source ID so pushHistory captures it.
+                // processUiQueue will clear it later when the whole chain/modal is done.
+                const finalS = get();
+                get().pushHistory(); // Capture with source ID still set
+
+                if (!finalS.isEffectActivated) {
+                    useGameStore.setState({ isBatching: false, isLinkSummoningActive: false, lastEffectSourceId: null });
+                } else {
+                    useGameStore.setState({ isBatching: false, isLinkSummoningActive: false });
+                }
+
                 get().processPendingEffects();
                 get().processUiQueue();
             }
         }
     },
 
-    addLog: (message) => set((state) => ({ logs: [message, ...state.logs] })),
+    addLog: (message) => {
+        set((state) => ({ logs: [message, ...state.logs] }));
+        get().pushHistory();
+    },
+
+
 
     setDragState: (isDragging, id) => set({ isDragging, activeDragId: id }),
 
@@ -4230,8 +4316,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     },
 
     changeLP: (amount) => {
-        get().pushHistory();
         set((state) => ({ lp: state.lp + amount }));
+        get().pushHistory();
     },
 
     setCardFlag: (cardId, flag) => set((state) => {
@@ -4259,7 +4345,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const usage = get().turnEffectUsage[cid] || 0;
 
                 if (hoptExempt.includes(cid) || usage < 1) {
-                    useGameStore.setState({ isEffectActivated: false });
+                    useGameStore.setState({ isEffectActivated: true, lastEffectSourceId: cardId });
                     EFFECT_LOGIC[cid](get(), cardId);
                 } else {
                     get().addLog(`[HOPT] Effect of ${card.name} has already been used this turn.`);
@@ -4379,6 +4465,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 cardPropertyModifiers: JSON.parse(JSON.stringify(state.cardPropertyModifiers)),
                 isLinkSummoningActive: state.isLinkSummoningActive,
                 isTellBuffActive: state.isTellBuffActive,
+                lastEffectSourceId: state.lastEffectSourceId, // Capture effect source for replay
                 // UI States usually NOT undone?
                 // User said "remove the corresponding log entry and revert state".
                 // We should revert UI states? Probably not modals, but search/target state?
@@ -4387,19 +4474,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
             };
 
             const newHistory = [...(state.history || []), snapshot];
-            if (newHistory.length > 50) newHistory.shift(); // Limit to 50
+            if (newHistory.length > 1000) newHistory.shift(); // Increased limit to 1000 to support full replays
             return { history: newHistory };
         });
     },
 
     undo: () => {
         const state = get();
-        if (!state.history || state.history.length === 0) {
+        if (!state.history || state.history.length <= 1) {
             get().addLog("Nothing to undo.");
             return;
         }
-        const previous = state.history[state.history.length - 1];
+        // Current state is history[last]. To undo, we need history[last-1].
         const newHistory = state.history.slice(0, -1);
+        const previous = newHistory[newHistory.length - 1];
 
         set({
             ...previous,
@@ -4425,7 +4513,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const store = get();
         if (store.triggerCandidates.includes(cardId)) {
             // Only remove the current card from candidates
-            useGameStore.setState(prev => ({ triggerCandidates: prev.triggerCandidates.filter(id => id !== cardId) }));
+            useGameStore.setState(prev => ({
+                triggerCandidates: prev.triggerCandidates.filter(id => id !== cardId),
+                lastEffectSourceId: cardId,
+                isEffectActivated: true
+            }));
             const cardDef = store.cards[cardId];
             if (cardDef && EFFECT_LOGIC[cardDef.cardId]) {
                 store.addLog(`Activated Trigger Effect of ${cardDef.name}.`);
@@ -4434,6 +4526,56 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     EFFECT_LOGIC[cardDef.cardId](get(), cardId, 'TRIGGER');
                 } finally { }
             }
+        }
+    },
+
+    // --- REPLAY LOGIC ---
+    startReplay: () => {
+        const state = get();
+        if (!state.history || state.history.length === 0) return;
+
+        set({
+            isReplaying: true,
+            replayIndex: 0,
+            replayBackupState: state, // Backup current state
+            // Reset to initial state
+            ...state.history[0],
+            logs: [state.history[0].logs?.[0] || 'Game Start'],
+        });
+    },
+
+    stopReplay: () => {
+        const s = get();
+        // User Request: Stop at that point (Pause/Stop without revert).
+        set({ isReplaying: false, activeEffectCardId: null, replayBackupState: null });
+        s.addLog("Replay stopped.");
+    },
+
+    setReplaySpeed: (speed) => set({ replaySpeed: speed }),
+
+    nextReplayStep: () => {
+        const s = get();
+        if (!s.isReplaying) return;
+
+        const nextIndex = s.replayIndex + 1;
+        if (nextIndex >= s.history.length) {
+            s.addLog("Replay Finished.");
+            set({ isReplaying: false, activeEffectCardId: null });
+            return;
+        }
+
+        const snapshot = s.history[nextIndex];
+        if (snapshot) {
+            // Check for effect source to flash
+            const effSource = snapshot.lastEffectSourceId;
+
+            set({
+                ...snapshot,
+                replayIndex: nextIndex,
+                activeEffectCardId: effSource, // Trigger flash
+            });
+
+            // Auto-clear flash logic moved to UI or handled by next step update
         }
     }
 }));

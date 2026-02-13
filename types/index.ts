@@ -58,6 +58,14 @@ export interface GameState {
     isMaterialMove: boolean;
     isTellBuffActive: boolean;
     lastEffectSourceId: string | null;
+    isHistoryBatching?: boolean;
+
+    // Replay State
+    isReplaying: boolean;
+    replaySpeed: number; // 1, 2, 3
+    replayIndex: number;
+    replayBackupState?: Partial<GameState> | null;
+    activeEffectCardId?: string | null; // For displaying green flash during replay (distinct from logic source)
 }
 
 export interface DragItem {
