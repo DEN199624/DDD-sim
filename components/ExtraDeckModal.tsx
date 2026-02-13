@@ -45,7 +45,8 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
 
         // 2. Synchro
         if (card.subType?.includes('SYNCHRO')) {
-            const monsters = monsterZones.filter(id => id).map(id => cards[id!]);
+            const monsterIds = [...monsterZones, ...useGameStore.getState().extraMonsterZones].filter((id): id is string => id !== null);
+            const monsters = monsterIds.map(id => cards[id]);
             const tuners = monsters.filter(m => m.subType?.includes('TUNER'));
             const nonTuners = monsters.filter(m => !m.subType?.includes('TUNER'));
             const targetLevel = card.level || 0;

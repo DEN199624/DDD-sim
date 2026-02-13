@@ -15,7 +15,7 @@ interface CardProps {
 }
 
 export function Card({ card, isOverlay, onClickOverride, isInteractive = true, disableDrag = false, dragId }: CardProps) {
-    const { activateEffect, selectedCards, cardPropertyModifiers, extraDeck } = useGameStore();
+    const { activateEffect, selectedCards, cardPropertyModifiers, extraDeck, materials, cards } = useGameStore();
 
     // Destructure new state objects
     const targetingState = useGameStore(state => state.targetingState);
@@ -32,7 +32,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     const isTriggerCandidate = triggerCandidates.includes(card.id);
     const isSelectingZone = zoneSelectionState.isOpen;
 
-    // Disable drag if targeting OR if card is in Extra Deck OR if it's a trigger candidate OR input prop
+    // Disable drag if targeting OR if card is in Extra Deck OR if it's a trigger candidate OR input prop OR replaying
     const isExtraDeckCard = extraDeck.includes(card.id);
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: dragId || card.id, // Use dragId if provided, else card.id
@@ -94,7 +94,6 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     };
 
     const style: React.CSSProperties = {
-        transform: CSS.Translate.toString(transform),
         zIndex: isDragging ? 100 : 1,
         opacity: isDragging ? 0.3 : 1,
         cursor: isDragging ? 'grabbing' : (isValidTarget || isTriggerCandidate ? 'crosshair' : 'grab'),
@@ -114,7 +113,6 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.5)' : ((isValidTarget || isSelected) ? `0 0 10px ${shadowColor}` : '0 2px 5px rgba(0,0,0,0.3)'),
         userSelect: 'none',
         position: 'relative', // For absolute positioning if needed, or normal flow
-        transition: 'box-shadow 0.2s, transform 0.1s',
     };
 
     if (isOverlay) {
@@ -130,10 +128,9 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         style.height = '100%';
         style.boxShadow = '0 2px 5px rgba(0,0,0,0.5)'; // Simpler shadow
         style.scale = '1'; // Reset scale
-        delete style.transform; // Remove transform from dnd
+        // delete style.transform; // Remove transform from dnd
     }
 
-    const { materials, cards } = useGameStore();
     const attachedMaterials = materials[card.id] || [];
 
     return (
@@ -156,6 +153,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
                 ...style,
                 transform: CSS.Translate.toString(transform),
             }}
+            // Only animate scale/shadow if replaying and active. Do NOT animate transform or layout here.
             animate={activeEffectCardId === card.id ? {
                 boxShadow: ["0px 0px 0px 0px rgba(0, 255, 0, 0)", "0px 0px 20px 10px rgba(0, 255, 0, 0.8)", "0px 0px 0px 0px rgba(0, 255, 0, 0)"],
                 scale: [1, 1.1, 1],

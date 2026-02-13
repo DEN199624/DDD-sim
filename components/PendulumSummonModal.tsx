@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { Card } from './Card';
 
 export function PendulumSummonModal() {
-    const { isPendulumSummoning, pendulumCandidates, resolvePendulumSelection, cancelPendulumSummon, cards } = useGameStore();
+    const { isPendulumSummoning, isPendulumProcessing, pendulumCandidates, resolvePendulumSelection, cancelPendulumSummon, cards } = useGameStore();
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
@@ -12,7 +12,7 @@ export function PendulumSummonModal() {
         }
     }, [isPendulumSummoning]);
 
-    if (!isPendulumSummoning) return null;
+    if (!isPendulumSummoning || isPendulumProcessing) return null;
 
     const toggleSelection = (id: string) => {
         if (selectedIds.includes(id)) {
@@ -74,7 +74,7 @@ export function PendulumSummonModal() {
                                     position: 'relative'
                                 }}
                             >
-                                <Card card={cards[id]} />
+                                <Card card={cards[id]} isInteractive={false} />
                                 {isSelected && (
                                     <div style={{
                                         position: 'absolute',

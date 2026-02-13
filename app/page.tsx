@@ -149,8 +149,7 @@ export default function Home() {
 
     if (!over) return;
 
-    const activeCardData = active.data.current?.card as CardType;
-    const activeId = activeCardData ? activeCardData.id : active.id as string;
+    const activeId = active.id as string;
     const overId = over.id as string;
 
     // Check if both IDs are in the deck - if so, it's a sort operation
@@ -215,17 +214,7 @@ export default function Home() {
       }
 
       console.log('Dropped', activeId, 'on', zoneType, index);
-
-      // Log Suppression Logic for Field-to-Field moves
-      const isFromMonsterZone = store.monsterZones.includes(activeId) || store.extraMonsterZones.includes(activeId);
-      const isFromSpellTrapZone = store.spellTrapZones.includes(activeId) || store.fieldZone === activeId;
-      const isFromField = isFromMonsterZone || isFromSpellTrapZone;
-
-      const isToField = ['MONSTER_ZONE', 'EXTRA_MONSTER_ZONE', 'SPELL_TRAP_ZONE', 'FIELD_ZONE'].includes(zoneType);
-
-      const suppressLog = isFromField && isToField;
-
-      moveCard(activeId, zoneType, index, undefined, false, false, undefined, suppressLog);
+      moveCard(activeId, zoneType, index);
     }
 
   };

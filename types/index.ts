@@ -51,21 +51,19 @@ export interface GameState {
     pendulumSummonLimit: number;
 
     // Modifiers
-    cardPropertyModifiers: { [cardId: string]: { level?: number, attack?: number, defense?: number } };
-
+    cardPropertyModifiers: { [cardId: string]: Partial<Card> };
+    // UI Helpers
+    isDragging: boolean;
+    activeDragId: string | null;
+    activeEffectCardId: string | null; // For Replay Highlighting
+    pendulumCandidates: string[];
     history: Partial<GameState>[];
     isLinkSummoningActive: boolean;
     isMaterialMove: boolean;
     isTellBuffActive: boolean;
     lastEffectSourceId: string | null;
-    isHistoryBatching?: boolean;
-
-    // Replay State
     isReplaying: boolean;
-    replaySpeed: number; // 1, 2, 3
-    replayIndex: number;
-    replayBackupState?: Partial<GameState> | null;
-    activeEffectCardId?: string | null; // For displaying green flash during replay (distinct from logic source)
+    isPendulumProcessing: boolean;
 }
 
 export interface DragItem {

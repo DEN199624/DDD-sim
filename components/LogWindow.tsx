@@ -2,24 +2,12 @@ import React, { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 
 export function LogWindow() {
-    const { logs, startReplay, stopReplay, isReplaying, replaySpeed, setReplaySpeed, nextReplayStep } = useGameStore();
-    const [isAscending, setIsAscending] = useState(false);
+    const { logs, jumpToLog, replay, stopReplay, isReplaying, replaySpeed, toggleReplaySpeed } = useGameStore();
+    const [isAscending, setIsAscending] = useState(true);
 
-    // Automatic playback loop
-    React.useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isReplaying) {
-            const duration = 1500 / replaySpeed; // 1.5s, 0.75s, 0.5s
-            interval = setInterval(() => {
-                nextReplayStep();
-            }, duration);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isReplaying, replaySpeed, nextReplayStep]);
-
-    const displayedLogs = isAscending ? [...logs].reverse() : logs;
+    const displayedLogs = isAscending
+        ? logs.map((log, originalIndex) => ({ log, displayIndex: logs.length - originalIndex, originalIndex })).reverse()
+        : logs.map((log, originalIndex) => ({ log, displayIndex: logs.length - originalIndex, originalIndex }));
 
     return (
         <div style={{
@@ -35,6 +23,8 @@ export function LogWindow() {
             color: '#eee',
             fontSize: '12px',
             fontFamily: 'monospace',
+            display: 'flex',
+            flexDirection: 'column',
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #555', paddingBottom: '5px', marginBottom: '5px' }}>
                 <h3 style={{ margin: 0 }}>Duel Log</h3>
@@ -56,7 +46,7 @@ export function LogWindow() {
                         </button>
                     ) : (
                         <button
-                            onClick={() => startReplay()}
+                            onClick={() => replay()}
                             disabled={logs.length === 0}
                             style={{
                                 padding: '2px 8px',
@@ -73,25 +63,23 @@ export function LogWindow() {
                         </button>
                     )}
 
-                    <button
-                        onClick={() => {
-                            const speeds = [1, 2, 3];
-                            const next = speeds[(speeds.indexOf(replaySpeed) + 1) % speeds.length];
-                            setReplaySpeed(next);
-                        }}
-                        style={{
-                            padding: '2px 8px',
-                            fontSize: '10px',
-                            backgroundColor: '#ff9800',
-                            border: 'none',
-                            borderRadius: '4px',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            minWidth: '30px'
-                        }}
-                    >
-                        {replaySpeed}x
-                    </button>
+                    {isReplaying && (
+                        <button
+                            onClick={() => toggleReplaySpeed()}
+                            style={{
+                                padding: '2px 8px',
+                                fontSize: '10px',
+                                backgroundColor: '#ff9800',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                minWidth: '30px'
+                            }}
+                        >
+                            {replaySpeed}x
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setIsAscending(!isAscending)}
@@ -109,10 +97,20 @@ export function LogWindow() {
                     </button>
                 </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {displayedLogs.map((log, i) => (
-                    <div key={i} style={{ borderBottom: '1px solid #333', paddingBottom: '2px' }}>
-                        <span style={{ color: '#888' }}>[{isAscending ? i + 1 : logs.length - i}]</span> {log}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                {displayedLogs.map(({ log, displayIndex, originalIndex }, i) => (
+                    <div
+                        key={i}
+                        onClick={() => !isReplaying && jumpToLog(originalIndex)}
+                        style={{
+                            borderBottom: '1px solid #333',
+                            paddingBottom: '2px',
+                            cursor: isReplaying ? 'default' : 'pointer',
+                            opacity: isReplaying ? 0.7 : 1,
+                        }}
+                        className={!isReplaying ? "hover:bg-white/10 hover:text-white transition-colors" : ""}
+                    >
+                        <span style={{ color: '#888' }}>[{displayIndex}]</span> {log}
                     </div>
                 ))}
             </div>

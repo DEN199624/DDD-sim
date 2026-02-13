@@ -340,6 +340,18 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         description: '(This card is always treated as a "DD" card). [1] Once per turn: Target 1 other "DD" card you control; destroy it, and SS 1 "DD" monster from Deck. Lock into "DD" SS for rest of turn.',
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260203/20260203193404.png'
     },
+    'c035': {
+        cardId: 'c035',
+        name: 'DDD Super-Death Great King Whitest Hell Armageddon',
+        type: 'MONSTER',
+        subType: 'SYNCHRO/PENDULUM/EFFECT',
+        description: 'Level 10 Synchro Pendulum. Scale 1. Materials: "DD" Tuner + 1+ "DDD" non-Tuner monsters. [P-Effect] None. [Monster Effect] (1) If this card in the Monster Zone is destroyed: You can place this card in your Pendulum Zone.',
+        attack: 3500,
+        defense: 3000,
+        level: 10,
+        scale: 1,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324231246.png'
+    },
     // Add more fillers to reach ~30 if needed, or duplicates in deck
 
 };
