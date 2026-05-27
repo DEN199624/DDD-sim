@@ -121,7 +121,7 @@ export default function Home() {
     'DDD烈火王テムジン': 'テムジン',
     'DDD聖賢王アルフレッド': 'アルフレッド',
     'DDD烈火大王エグゼクティブ・テムジン': '大王テムジン',
-    'DDDD偉次元元王アーク・クライシス': 'クライシス',
+    'DDDD偉次元元王アーク・クライシス': 'アーククライシス',
     'DDD創始王クロヴィス': 'クロヴィス',
     'DDD呪血王サイフリート': 'サイフリート',
     'DDD超死偉王ホワイテスト・ヘル・アーマゲドン': '白アーマゲドン',
@@ -132,6 +132,7 @@ export default function Home() {
     'DDD赦俿王デス・マキナ': 'デスマキナ',
     'DDD深淵王ビルガメス': 'ビルガメス',
     'DDD天空王ゼウス・ラグナロク': 'ゼウス',
+    'マルチャミー・フワロス': 'フワロス',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -221,6 +222,14 @@ export default function Home() {
       // Specific Swap for User Request: Necro Slime (c015) vs Defense Soldier (c033)
       if (a === 'c015' && idB === 'c033') return 1;
       if (a === 'c033' && idB === 'c015') return -1;
+
+      // Explicit Swap: Defense Soldier (c033) vs Multchummy Fuwaross (c037)
+      if (a === 'c033' && idB === 'c037') return -1;
+      if (a === 'c037' && idB === 'c033') return 1;
+
+      // Ensure Multchummy Fuwaross (c037) is to the right of Necro Slime (c015)
+      if (a === 'c015' && idB === 'c037') return -1;
+      if (a === 'c037' && idB === 'c015') return 1;
 
       // User Request: Swamp King (c006) vs Zero King (c034)
       if (a === 'c006' && idB === 'c034') return -1;

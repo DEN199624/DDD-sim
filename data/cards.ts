@@ -426,6 +426,19 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         nameJa: 'ワン・フォー・ワン',
         descriptionJa: '①：手札からモンスター１体を墓地へ送って発動できる。手札・デッキからレベル１モンスター１体を特殊召喚する。'
     },
+    'c037': {
+        cardId: 'c037',
+        name: 'Multchummy Fuwaross',
+        nameJa: 'マルチャミー・フワロス',
+        type: 'MONSTER',
+        subType: 'EFFECT',
+        description: 'Level 4. (Quick Effect): If you control no cards, discard this card; apply effects this turn: Each time your opponent Special Summons from the Deck/Extra Deck, draw 1 card.',
+        descriptionJa: 'このカード名の効果は１ターンに１度、いずれか１つしか発動できない。\n①：自分フィールドにカードが存在しない場合、このカードを手札から捨てて発動できる。このターン中、以下の効果を適用する。\n●相手がデッキ・ＥＸデッキからモンスターを特殊召喚する度に、自分はデッキから１枚ドローする。\n●エンドフェイズに、自分の手札が相手フィールドのカードの数＋６枚より多い場合、その差の数だけ自分の手札をランダムにデッキに戻す。',
+        attack: 100,
+        defense: 600,
+        level: 4,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260527/20260527181258.png'
+    },
     'c_token_nibiru': {
         cardId: 'c_token_nibiru',
         name: 'Primal Being Token',

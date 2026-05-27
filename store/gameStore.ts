@@ -3735,7 +3735,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     } else if (isSpecialSummon) {
                         const variant = summonVariant?.toLowerCase();
                         const sub = card.subType?.toUpperCase() || '';
-                        const isFusion = variant === 'fusion' || (variant?.startsWith('mats:') && sub.includes('FUSION'));
+                        const isFusion = (variant === 'fusion' || (variant?.startsWith('mats:') && sub.includes('FUSION'))) && card.cardId !== 'c029';
                         const isSynchro = variant === 'synchro' || (variant?.startsWith('mats:') && sub.includes('SYNCHRO'));
                         const isXyz = variant === 'xyz' || (variant?.startsWith('mats:') && sub.includes('XYZ'));
                         const isLink = variant === 'link' || variant?.startsWith('link:') || (variant?.startsWith('mats:') && sub.includes('LINK'));
@@ -3793,7 +3793,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         const isJA = state.language === 'ja';
                         combinedLog += isJA ? `（${materials}）` : ` (${materials})`;
                     }
-                    if (summonVariant === 'FUSION' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('FUSION') && card.cardId !== 'c029')) {
+                    if ((summonVariant === 'FUSION' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('FUSION'))) && card.cardId !== 'c029') {
                         combinedLog = combinedLog.replace('を特殊召喚', 'を融合召喚');
                     } else if (summonVariant === 'SYNCHRO' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('SYNCHRO'))) {
                         combinedLog = combinedLog.replace('を特殊召喚', 'をS召喚');
