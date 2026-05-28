@@ -874,6 +874,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                         currentStore.startZoneSelection(formatLog('prompt_select_zone'), (t: string, i: number) => t === 'MONSTER_ZONE' && emptyIndices.includes(i), (t: string, i: number) => {
                             useGameStore.getState().moveCard(selfId, 'MONSTER_ZONE', i, 'HAND', true, true, undefined, true);
                             useGameStore.getState().addLog(formatLog('log_orthros_hand_ss'));
+                            useGameStore.getState().addTurnEffectUsage('c011_hand_ss', selfId);
                         });
                     } else {
                         currentStore.addLog(formatLog('log_orthros_no_empty_zone'));
@@ -1793,6 +1794,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                     [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
                     (choice: string, isNegated?: boolean) => {
                         if (choice === 'yes') {
+                            useGameStore.getState().addTurnEffectUsage('c017', selfId);
                             if (isNegated) return;
                             const s1 = useGameStore.getState(); // Fix: Fresh State
                             s1.startSearch(
@@ -4472,6 +4474,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             // c035 Requirement: "DDD" non-Tuner
                             if (extraDeckCardId === 'c035' && !c.name.includes('DDD')) return false;
 
+                            // c020 (Siegfried) Requirement: "DD" non-Tuner
+                            if (extraDeckCardId === 'c020' && !isDDArchetype(c)) return false;
+
                             return true;
                         },
                         (nonTunerId) => {
@@ -4641,6 +4646,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             })();
                             if (effLevel === undefined) return false; // Must have Level
                             const match = effLevel === rank;
+                            if (!match) return false;
+
+                            // c022 (Caesar) or c023 (Executive Caesar) Requirement: Fiend (exclude c037 in current pool)
+                            if ((extraDeckCardId === 'c022' || extraDeckCardId === 'c023') && c.cardId === 'c037') return false;
+
+                            // c025 (Solomon) Requirement: "DD" monsters
+                            if (extraDeckCardId === 'c025' && !isDDArchetype(c)) return false;
+
                             console.log(`Checking ${c.name} (${c.id}): Level ${effLevel} vs Rank ${rank}. Match: ${match}`);
                             return match;
                         },
@@ -5493,6 +5506,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const handCandidates = state.hand.filter(id => {
             const c = state.cards[id];
             const effLv = getEffLevel(id);
+            if (c.cardId === 'c037') {
+                const isGilgameshUsed = (state.turnEffectUsage['c017'] || 0) > 0;
+                const isZeroKingUsed = (state.turnEffectUsage['c034'] || 0) > 0;
+                const isOrthrosHandSSUsed = (state.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+                if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                    return false;
+                }
+            }
             return c.type === 'MONSTER' && effLv > min && effLv < max;
         });
 
