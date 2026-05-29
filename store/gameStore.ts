@@ -243,14 +243,11 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                             const cardName = getCardName(s2.cards[selectedId], s2.language);
                             s2.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
                             s2.addLog(s2.language === 'ja'
-                                ? `軌跡の魔術師の効果により、デッキから [${cardName}] を手札に加えました。`
-                                : `Added [${cardName}] from Deck to hand by the effect of Beyond the Pendulum.`);
+                                ? `${cardName}をサーチ（ビヨンド効果）`
+                                : `Search [${cardName}] (Beyond effect)`);
 
                             // Lock active
                             useGameStore.setState({ beyondLockActive: true });
-                            s2.addLog(s2.language === 'ja'
-                                ? '軌跡の魔術師のデメリット効果が適用されました（P召喚成功まで効果発動不可）。'
-                                : 'Lock effect of Beyond the Pendulum applied (cannot activate card effects until a Pendulum Summon is successful).');
                         },
                         store.language === 'ja' ? '手札に加えるペンデュラムモンスターを選択してください' : 'Select a Pendulum Monster to add to hand',
                         store.deck
@@ -5413,9 +5410,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const { cards, beyondLockActive } = get();
         const card = cards[cardId];
         if (beyondLockActive && card?.cardId !== 'c038') {
-            get().addLog(get().language === 'ja'
-                ? '軌跡の魔術師のデメリット効果により、他のカードの効果は発動できません。'
-                : 'Cannot activate card effects due to the lock effect of Beyond the Pendulum.');
+            console.warn('Cannot activate card effects due to the lock effect of Beyond the Pendulum.');
             return;
         }
 
@@ -5708,9 +5703,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     // 1. デメリット解除
                     if (get().beyondLockActive) {
                         set({ beyondLockActive: false });
-                        get().addLog(get().language === 'ja'
-                            ? 'P召喚に成功したため、軌跡の魔術師のデメリット効果が解除されました。'
-                            : 'Pendulum Summon successful. Lock effect of Beyond the Pendulum has been removed.');
                     }
 
                     // 2. 軌跡の魔術師の破壊効果トリガー
