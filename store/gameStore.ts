@@ -222,6 +222,50 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
             );
         }
     },
+    'c038': (store, selfId, fromLocation) => {
+        // HOPT for search effect upon Link Summon
+        if (store.turnEffectUsage['c038']) return;
+
+        store.startEffectSelection(
+            store.language === 'ja'
+                ? '「軌跡の魔術師」のリンク召喚成功時の効果を発動しますか？（デッキからPモンスターをサーチ）'
+                : 'Activate the effect of "Beyond the Pendulum" upon Link Summon? (Search a Pendulum Monster)',
+            [{ label: store.language === 'ja' ? 'はい' : 'Yes', value: 'yes' }, { label: store.language === 'ja' ? 'いいえ' : 'No', value: 'no' }],
+            (choice, isNegated) => {
+                if (choice === 'yes') {
+                    store.addTurnEffectUsage('c038');
+                    if (isNegated) return;
+
+                    store.startSearch(
+                        (c: any) => c.subType?.includes('PENDULUM'),
+                        (selectedId: string) => {
+                            const s2 = useGameStore.getState();
+                            const cardName = getCardName(s2.cards[selectedId], s2.language);
+                            s2.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                            s2.addLog(s2.language === 'ja'
+                                ? `軌跡の魔術師の効果により、デッキから [${cardName}] を手札に加えました。`
+                                : `Added [${cardName}] from Deck to hand by the effect of Beyond the Pendulum.`);
+
+                            // Lock active
+                            useGameStore.setState({ beyondLockActive: true });
+                            s2.addLog(s2.language === 'ja'
+                                ? '軌跡の魔術師のデメリット効果が適用されました（P召喚成功まで効果発動不可）。'
+                                : 'Lock effect of Beyond the Pendulum applied (cannot activate card effects until a Pendulum Summon is successful).');
+                        },
+                        store.language === 'ja' ? '手札に加えるペンデュラムモンスターを選択してください' : 'Select a Pendulum Monster to add to hand',
+                        store.deck
+                    );
+                } else {
+                    const sNo = useGameStore.getState();
+                    sNo.addLog(sNo.language === 'ja'
+                        ? '軌跡の魔術師の効果を発動しませんでした。'
+                        : 'Did not activate the effect of Beyond the Pendulum.');
+                }
+            },
+            true, // canAshBlossom (Negatable by Ash Blossom!)
+            selfId
+        );
+    },
 
     'c004': (store, selfId, fromLocation) => {
         // [Monster Effect] If Summoned: Choice between Add Contract or Return DD
@@ -3290,46 +3334,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                     : `Link Summon Beyond the Pendulum using [${materialsText}]!`);
 
                                 get().resolveLinkSummon(cardId, [mat1, mat2], toZone, toIndex);
-
-                                // Effect 1: Search P-Monster and Apply lock (Optional)
-                                setTimeout(() => {
-                                    const nextState = get();
-                                    nextState.startEffectSelection(
-                                        nextState.language === 'ja'
-                                            ? '「軌跡の魔術師」のリンク召喚成功時の効果を発動しますか？（デッキからPモンスターをサーチ）'
-                                            : 'Activate the effect of "Beyond the Pendulum" upon Link Summon? (Search a Pendulum Monster)',
-                                        [{ label: nextState.language === 'ja' ? 'はい' : 'Yes', value: 'yes' }, { label: nextState.language === 'ja' ? 'いいえ' : 'No', value: 'no' }],
-                                        (choice) => {
-                                            if (choice === 'yes') {
-                                                const sSearch = get();
-                                                sSearch.startSearch(
-                                                    (c: any) => c.subType?.includes('PENDULUM'),
-                                                    (selectedId: string) => {
-                                                        const s2 = useGameStore.getState();
-                                                        const cardName = getCardName(s2.cards[selectedId], s2.language);
-                                                        s2.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
-                                                        s2.addLog(s2.language === 'ja'
-                                                            ? `軌跡の魔術師の効果により、デッキから [${cardName}] を手札に加えました。`
-                                                            : `Added [${cardName}] from Deck to hand by the effect of Beyond the Pendulum.`);
-
-                                                        // Lock active
-                                                        useGameStore.setState({ beyondLockActive: true });
-                                                        s2.addLog(s2.language === 'ja'
-                                                            ? '軌跡の魔術師のデメリット効果が適用されました（P召喚成功まで効果発動不可）。'
-                                                            : 'Lock effect of Beyond the Pendulum applied (cannot activate card effects until a Pendulum Summon is successful).');
-                                                    },
-                                                    store.language === 'ja' ? '手札に加えるペンデュラムモンスターを選択してください' : 'Select a Pendulum Monster to add to hand',
-                                                    sSearch.deck
-                                                );
-                                            } else {
-                                                const sNo = get();
-                                                sNo.addLog(sNo.language === 'ja'
-                                                    ? '軌跡の魔術師の効果を発動しませんでした。'
-                                                    : 'Did not activate the effect of Beyond the Pendulum.');
-                                            }
-                                        }
-                                    );
-                                }, 100);
                             }
                         );
                     }
@@ -5789,6 +5793,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                                             );
                                                         }
                                                     );
+                                                } else {
+                                                    const sNo = get();
+                                                    sNo.addLog(sNo.language === 'ja'
+                                                        ? '軌跡の魔術師の破壊効果を発動しませんでした。'
+                                                        : 'Did not activate the destruction effect of Beyond the Pendulum.');
                                                 }
                                             }
                                         );
