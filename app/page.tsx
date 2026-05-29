@@ -133,6 +133,7 @@ export default function Home() {
     'DDD深淵王ビルガメス': 'ビルガメス',
     'DDD天空王ゼウス・ラグナロク': 'ゼウス',
     'マルチャミー・フワロス': 'フワロス',
+    '軌跡の魔術師': 'ビヨンド',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -189,7 +190,14 @@ export default function Home() {
       if (st.includes('LINK')) return 4;
       return 5;
     };
-    extraDeckList.sort((a, b) => getExtraDeckOrder(a) - getExtraDeckOrder(b));
+    extraDeckList.sort((a, b) => {
+      const orderA = getExtraDeckOrder(a);
+      const orderB = getExtraDeckOrder(b);
+      if (orderA !== orderB) return orderA - orderB;
+      if (a === 'c028' && b === 'c038') return -1;
+      if (a === 'c038' && b === 'c028') return 1;
+      return a.localeCompare(b);
+    });
 
     // Build Final Deck List passed to initializeGame
     // User Request: Fix Main Deck duplicates (Singleton display).

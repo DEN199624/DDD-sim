@@ -91,6 +91,7 @@ export interface GameState {
     impulseUsed: boolean;
     showImpulseCutIn: boolean;
     zeusNegationUsed: boolean;
+    beyondLockActive: boolean;
     showZoneInLog: boolean;
     logCount?: number; // Optional count of logs for optimized history snapshots
     isEffectActivated: boolean;

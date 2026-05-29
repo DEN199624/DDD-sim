@@ -439,6 +439,20 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         level: 4,
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260527/20260527181258.png'
     },
+    'c038': {
+        cardId: 'c038',
+        name: 'Beyond the Pendulum',
+        nameJa: '軌跡の魔術師',
+        type: 'MONSTER',
+        subType: 'LINK/EFFECT',
+        description: 'Link-2. 2 monsters including a Pendulum Monster. [1] If this card is Link Summoned: Add 1 Pendulum Monster from Deck to Hand. For the rest of the turn, unless you Pendulum Summon, you cannot activate card effects. [2] If 2 monsters with different Levels are Pendulum Summoned to zones this card points to at the same time: Target 2 cards on the field; destroy them.',
+        descriptionJa: 'Ｐモンスターを含む効果モンスター２体\nこのカード名の(2)の効果は１ターンに１度しか使用できない。\n(1)：このカードがＬ召喚に成功した場合に発動できる。デッキからＰモンスター１体を手札に加える。この効果の発動後、自分はＰ召喚に成功するまで、フィールドのモンスターの効果以外の効果を発動できず、Ｐゾーンのカードの効果は無効化される。\n(2)：このカードのリンク先にレベルが異なるモンスター２体が同時にＰ召喚された場合、フィールドのカード２枚を対象として発動できる。そのカードを破壊する。',
+        attack: 1200,
+        defense: 0,
+        level: 0,
+        linkMarkers: ['BOTTOM_LEFT', 'BOTTOM_RIGHT'],
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260527/20260527184644.png'
+    },
     'c_token_nibiru': {
         cardId: 'c_token_nibiru',
         name: 'Primal Being Token',

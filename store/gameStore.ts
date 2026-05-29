@@ -2575,6 +2575,7 @@ interface GameStore extends GameState {
     setImpulseSimulationEnabled: (enabled: boolean) => void;
     resetSummonCount: () => void;
     zeusNegationUsed: boolean;
+    beyondLockActive: boolean;
 }
 
 
@@ -2616,6 +2617,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     impulseUsed: false,
     showImpulseCutIn: false,
     zeusNegationUsed: false,
+    beyondLockActive: false,
     isHistoryBatching: false,
 
     // Setters
@@ -3098,7 +3100,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 // Check Materials (2 DD Monsters)
                 // Valid locations for materials: Monster Zones only? Link Summon uses face-up monsters.
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter(id => id && store.cards[id].name.includes('DD'));
+                    .filter(id => id && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038');
 
                 if (candidates.length < 2) {
                     const s = get();
@@ -3108,10 +3110,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 useGameStore.setState({ isHistoryBatching: true }); // Start batching before material selection
                 store.startTargeting(
-                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD'),
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.cardId !== 'c038',
                     (mat1) => {
                         store.startTargeting(
-                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1,
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1 && c.cardId !== 'c038',
                             (mat2) => {
                                 const s = get();
                                 s.addLog(formatLog('log_link_material_select', { card: getCardName(store.cards[mat2], store.language) }));
@@ -3139,7 +3141,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             // Custom Rule: Can use "Gilgamesh + 1 DD Monster" (Gilgamesh treated as 2).
             if (!isSpecialSummon && !suppressTrigger && toZone === 'EXTRA_MONSTER_ZONE' && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c028') {
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD'));
+                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038');
 
                 // Auto-detect Gilgamesh combo capability
                 const gilgameshId = candidates.find(id => store.cards[id].cardId === 'c017');
@@ -3182,6 +3184,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             const onField = cs.monsterZones.includes(c.id) || cs.extraMonsterZones.includes(c.id);
                             if (!onField) return false;
                             if (!c.name.includes('DD')) return false;
+                            if (c.cardId === 'c038') return false;
                             if (selectedMaterials.includes(c.id)) return false;
                             return true;
                         },
@@ -3222,6 +3225,100 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 };
 
                 selectNext();
+                return; // Abort initial move
+            }
+
+            // Intercept Manual Link Summon - Beyond the Pendulum (c038)
+            // Requirements: 2 monsters including a Pendulum Monster. Link-2.
+            // Constraints: Cannot summon if "Gilgamesh", "Zero King" or "Orthros hand SS" was used this turn.
+            if (!isSpecialSummon && !suppressTrigger && toZone === 'EXTRA_MONSTER_ZONE' && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c038') {
+                const isGilgameshUsed = (store.turnEffectUsage['c017'] || 0) > 0;
+                const isZeroKingUsed = (store.turnEffectUsage['c034'] || 0) > 0;
+                const isOrthrosHandSSUsed = (store.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+
+                if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                    store.addLog(store.language === 'ja'
+                        ? 'ビルガメス、零王の契約書、またはオルトロスの効果を発動したターン、このカードは特殊召喚できません。'
+                        : 'Cannot Special Summon this card if the effect of Gilgamesh, Dark Contract with the Zero King, or Orthros was activated this turn.');
+                    return;
+                }
+
+                const candidates = [...store.monsterZones, ...store.extraMonsterZones]
+                    .filter((id): id is string => id !== null);
+
+                // Need at least 2 monsters on field
+                if (candidates.length < 2) {
+                    store.addLog(store.language === 'ja' ? 'リンク素材が不足しています。' : 'Insufficient Link Materials.');
+                    return;
+                }
+
+                // Need at least 1 Pendulum Monster among candidates
+                const hasPendulum = candidates.some(id => store.cards[id].subType?.includes('PENDULUM'));
+                if (!hasPendulum) {
+                    store.addLog(store.language === 'ja' ? 'ペンデュラムモンスター1体を含むモンスター2体を素材にする必要があります。' : 'Requires 2 monsters including a Pendulum Monster as material.');
+                    return;
+                }
+
+                useGameStore.setState({ isHistoryBatching: true });
+                // Select Material 1
+                store.startTargeting(
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)),
+                    (mat1) => {
+                        // Select Material 2
+                        store.startTargeting(
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1,
+                            (mat2) => {
+                                // Check if at least one selected material is a Pendulum Monster
+                                const m1 = store.cards[mat1];
+                                const m2 = store.cards[mat2];
+                                const isM1Pend = m1.subType?.includes('PENDULUM');
+                                const isM2Pend = m2.subType?.includes('PENDULUM');
+
+                                if (!isM1Pend && !isM2Pend) {
+                                    store.addLog(store.language === 'ja'
+                                        ? 'リンク素材にペンデュラムモンスターを含める必要があります。'
+                                        : 'Link materials must include a Pendulum Monster.');
+                                    useGameStore.setState({ isHistoryBatching: false });
+                                    store.processUiQueue();
+                                    return;
+                                }
+
+                                const s = get();
+                                const materialsText = [mat1, mat2].map(id => getCardName(s.cards[id], s.language)).join(', ');
+                                s.addLog(s.language === 'ja'
+                                    ? `素材 [${materialsText}] で軌跡の魔術師をリンク召喚！`
+                                    : `Link Summon Beyond the Pendulum using [${materialsText}]!`);
+
+                                get().resolveLinkSummon(cardId, [mat1, mat2], toZone, toIndex);
+
+                                // Effect 1: Search P-Monster and Apply lock
+                                setTimeout(() => {
+                                    const nextState = get();
+                                    // Search effect
+                                    nextState.startSearch(
+                                        (c: any) => c.subType?.includes('PENDULUM'),
+                                        (selectedId: string) => {
+                                            const s2 = useGameStore.getState();
+                                            const cardName = getCardName(s2.cards[selectedId], s2.language);
+                                            s2.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                            s2.addLog(s2.language === 'ja'
+                                                ? `軌跡の魔術師の効果により、デッキから [${cardName}] を手札に加えました。`
+                                                : `Added [${cardName}] from Deck to hand by the effect of Beyond the Pendulum.`);
+
+                                            // Lock active
+                                            useGameStore.setState({ beyondLockActive: true });
+                                            s2.addLog(s2.language === 'ja'
+                                                ? '軌跡の魔術師のデメリット効果が適用されました（P召喚成功まで効果発動不可）。'
+                                                : 'Lock effect of Beyond the Pendulum applied (cannot activate card effects until a Pendulum Summon is successful).');
+                                        },
+                                        store.language === 'ja' ? '手札に加えるペンデュラムモンスターを選択してください' : 'Select a Pendulum Monster to add to hand',
+                                        nextState.deck
+                                    );
+                                }, 100);
+                            }
+                        );
+                    }
+                );
                 return; // Abort initial move
             }
 
@@ -5294,14 +5391,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }),
 
     activateEffect: (cardId) => {
+        const { cards, beyondLockActive } = get();
+        const card = cards[cardId];
+        if (beyondLockActive && card?.cardId !== 'c038') {
+            get().addLog(get().language === 'ja'
+                ? '軌跡の魔術師のデメリット効果により、他のカードの効果は発動できません。'
+                : 'Cannot activate card effects due to the lock effect of Beyond the Pendulum.');
+            return;
+        }
+
         // Highlight for Replay
         set({ activeEffectCardId: cardId });
         get().pushHistory();
         set({ activeEffectCardId: null });
         get().pushHistory(); // Force clear highlight snapshot for Replay
 
-        const { cards, hand, normalSummonUsed, monsterZones, extraMonsterZones } = get();
-        const card = cards[cardId];
+        const { hand, normalSummonUsed, monsterZones, extraMonsterZones } = get();
 
         // --- Helper: Run Standard Effect Logic ---
         const runStandardEffect = () => {
@@ -5466,6 +5571,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 impulseSimulationEnabled: state.impulseSimulationEnabled,
                 impulseUsed: state.impulseUsed,
                 selectedDeckCardId: state.selectedDeckCardId,
+                beyondLockActive: state.beyondLockActive,
             };
 
             const newHistory = [...(state.history || []), snapshot];
@@ -5579,6 +5685,103 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     get().addLog(`${matNames}をP召喚`);
 
                     set((state) => ({ pendulumSummonCount: state.pendulumSummonCount + 1 }));
+
+                    // 1. デメリット解除
+                    if (get().beyondLockActive) {
+                        set({ beyondLockActive: false });
+                        get().addLog(get().language === 'ja'
+                            ? 'P召喚に成功したため、軌跡の魔術師のデメリット効果が解除されました。'
+                            : 'Pendulum Summon successful. Lock effect of Beyond the Pendulum has been removed.');
+                    }
+
+                    // 2. 軌跡の魔術師の破壊効果トリガー
+                    const state = get();
+                    let beyondInstanceId: string | null = null;
+                    let beyondEmzIdx: number | null = null;
+                    state.extraMonsterZones.forEach((id, i) => {
+                        if (id && state.cards[id]?.cardId === 'c038') {
+                            beyondInstanceId = id;
+                            beyondEmzIdx = i;
+                        }
+                    });
+
+                    if (beyondInstanceId !== null && beyondEmzIdx !== null) {
+                        const linkZones = beyondEmzIdx === 0 ? [0, 2] : [2, 4];
+                        const placedInLinkZones = sortedPlacements.filter(p =>
+                            p.type === 'MONSTER_ZONE' && linkZones.includes(p.zoneIndex)
+                        );
+
+                        if (placedInLinkZones.length === 2) {
+                            const getEffLevel = (cId: string) => {
+                                const mod = state.cardPropertyModifiers[cId]?.level;
+                                return mod !== undefined ? mod : (state.cards[cId].level || 0);
+                            };
+
+                            const lvA = getEffLevel(placedInLinkZones[0].id);
+                            const lvB = getEffLevel(placedInLinkZones[1].id);
+
+                            if (lvA > 0 && lvB > 0 && lvA !== lvB) {
+                                const beyondUsed = (state.turnEffectUsage['c038_destroy'] || 0) > 0;
+                                if (!beyondUsed) {
+                                    setTimeout(() => {
+                                        const sDest = get();
+                                        sDest.startEffectSelection(
+                                            sDest.language === 'ja'
+                                                ? '「軌跡の魔術師」の破壊効果を発動しますか？（フィールドのカード２枚を破壊）'
+                                                : 'Activate "Beyond the Pendulum" effect to destroy 2 cards on the field?',
+                                            [{ label: sDest.language === 'ja' ? 'はい' : 'Yes', value: 'yes' }, { label: sDest.language === 'ja' ? 'いいえ' : 'No', value: 'no' }],
+                                            (choice) => {
+                                                if (choice === 'yes') {
+                                                    const sTarget1 = get();
+                                                    sTarget1.startTargeting(
+                                                        (c) => {
+                                                            const onField = sTarget1.monsterZones.includes(c.id) ||
+                                                                sTarget1.extraMonsterZones.includes(c.id) ||
+                                                                sTarget1.spellTrapZones.includes(c.id) ||
+                                                                sTarget1.fieldZone === c.id;
+                                                            return onField;
+                                                        },
+                                                        (target1) => {
+                                                            const sTarget2 = get();
+                                                            sTarget2.startTargeting(
+                                                                (c) => {
+                                                                    const onField = sTarget2.monsterZones.includes(c.id) ||
+                                                                        sTarget2.extraMonsterZones.includes(c.id) ||
+                                                                        sTarget2.spellTrapZones.includes(c.id) ||
+                                                                        sTarget2.fieldZone === c.id;
+                                                                    return onField && c.id !== target1;
+                                                                },
+                                                                (target2) => {
+                                                                    const sFinal = get();
+                                                                    sFinal.addTurnEffectUsage('c038_destroy', beyondInstanceId!);
+
+                                                                    const name1 = getCardName(sFinal.cards[target1], sFinal.language);
+                                                                    const name2 = getCardName(sFinal.cards[target2], sFinal.language);
+
+                                                                    const destroyCard = (id: string) => {
+                                                                        const cDef = sFinal.cards[id];
+                                                                        const dest = cDef.subType?.includes('PENDULUM') ? 'EXTRA_DECK' : 'GRAVEYARD';
+                                                                        sFinal.moveCard(id, dest, undefined, undefined, false, false, undefined, true);
+                                                                    };
+
+                                                                    destroyCard(target1);
+                                                                    destroyCard(target2);
+
+                                                                    sFinal.addLog(sFinal.language === 'ja'
+                                                                        ? `軌跡の魔術師の効果により、[${name1}] と [${name2}] を破壊しました。`
+                                                                        : `Destroyed [${name1}] and [${name2}] by the effect of Beyond the Pendulum.`);
+                                                                }
+                                                            );
+                                                        }
+                                                    );
+                                                }
+                                            }
+                                        );
+                                    }, 100);
+                                }
+                            }
+                        }
+                    }
                 } finally {
                     get().processPendingEffects();
                     set({ isBatching: false, isHistoryBatching: false, isPendulumProcessing: false });
