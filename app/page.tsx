@@ -9,7 +9,8 @@ import {
   DragEndEvent,
   useSensor,
   useSensors,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -148,9 +149,15 @@ export default function Home() {
 
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
       },
     })
   );
@@ -325,6 +332,29 @@ export default function Home() {
         }
       })
       .catch(err => console.error('Failed to update analytics', err));
+  }, []);
+
+  useEffect(() => {
+    const preventDefault = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      // Allow scrolling in specific components that require scrolling, prevent everywhere else
+      const isScrollable =
+        target.closest('.log-area') ||
+        target.closest('.preview-container') ||
+        target.closest('.search-modal-content') ||
+        target.closest('.effect-modal-content');
+
+      if (!isScrollable) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', preventDefault, { passive: false });
+    return () => {
+      document.removeEventListener('touchmove', preventDefault);
+    };
   }, []);
 
 
