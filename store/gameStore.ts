@@ -223,6 +223,10 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
         }
     },
     'c038': (store, selfId, fromLocation) => {
+        // Ensure Beyond is face-up on the field (Link Summon / Special Summon success)
+        const isOnField = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
+        if (!isOnField) return;
+
         // HOPT for search effect upon Link Summon
         if (store.turnEffectUsage['c038']) return;
 
@@ -3272,7 +3276,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             // Intercept Manual Link Summon - Beyond the Pendulum (c038)
             // Requirements: 2 monsters including a Pendulum Monster. Link-2.
             // Constraints: Cannot summon if "Gilgamesh", "Zero King" or "Orthros hand SS" was used this turn.
-            if (!isSpecialSummon && !suppressTrigger && toZone === 'EXTRA_MONSTER_ZONE' && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c038') {
+            if (!isSpecialSummon && !suppressTrigger && (toZone === 'EXTRA_MONSTER_ZONE' || toZone === 'MONSTER_ZONE') && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c038') {
                 const isGilgameshUsed = (store.turnEffectUsage['c017'] || 0) > 0;
                 const isZeroKingUsed = (store.turnEffectUsage['c034'] || 0) > 0;
                 const isOrthrosHandSSUsed = (store.turnEffectUsage['c011_hand_ss'] || 0) > 0;
@@ -3309,6 +3313,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         store.startTargeting(
                             (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1,
                             (mat2) => {
+                                // Link placement validation for Main Monster Zone
+                                if (toZone === 'MONSTER_ZONE') {
+                                    const emz0Card = store.extraMonsterZones[0] ? store.cards[store.extraMonsterZones[0]] : null;
+                                    const emz1Card = store.extraMonsterZones[1] ? store.cards[store.extraMonsterZones[1]] : null;
+                                    let validZones: number[] = [];
+                                    
+                                    if (emz0Card) {
+                                        if (emz0Card.cardId === 'c017') validZones.push(0, 2);
+                                        else if (emz0Card.cardId === 'c028') validZones.push(0, 1, 2);
+                                    }
+                                    if (emz1Card) {
+                                        if (emz1Card.cardId === 'c017') validZones.push(2, 4);
+                                        else if (emz1Card.cardId === 'c028') validZones.push(2, 3, 4);
+                                    }
+                                    
+                                    if (!validZones.includes(toIndex)) {
+                                        store.addLog(store.language === 'ja'
+                                            ? 'ビルガメスまたはゼウスのリンク先でなければメインモンスターゾーンにリンク召喚できません。'
+                                            : 'Can only Link Summon to a Main Monster Zone pointed to by Gilgamesh or Zeus.');
+                                        useGameStore.setState({ isHistoryBatching: false });
+                                        store.processUiQueue();
+                                        return;
+                                    }
+                                }
+
                                 // Check if at least one selected material is a Pendulum Monster
                                 const m1 = store.cards[mat1];
                                 const m2 = store.cards[mat2];

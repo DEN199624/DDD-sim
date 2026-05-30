@@ -622,39 +622,7 @@ export default function Home() {
                 </label>
               </div>
 
-              {/* Language Switch */}
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button
-                  onClick={() => useGameStore.getState().setLanguage('en')}
-                  style={{
-                    background: useGameStore.getState().language === 'en' ? '#fff' : 'none',
-                    color: useGameStore.getState().language === 'en' ? '#000' : '#888',
-                    border: '1px solid #444',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    fontWeight: useGameStore.getState().language === 'en' ? 'bold' : 'normal',
-                  }}
-                >
-                  English
-                </button>
-                <button
-                  onClick={() => useGameStore.getState().setLanguage('ja')}
-                  style={{
-                    background: useGameStore.getState().language === 'ja' ? '#fff' : 'none',
-                    color: useGameStore.getState().language === 'ja' ? '#000' : '#888',
-                    border: '1px solid #444',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '10px',
-                    padding: '2px 6px',
-                    fontWeight: useGameStore.getState().language === 'ja' ? 'bold' : 'normal',
-                  }}
-                >
-                  日本語
-                </button>
-              </div>
+
             </div>
           </div>
 
