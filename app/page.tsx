@@ -86,7 +86,7 @@ export default function Home() {
   } = useGameStore();
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [showLog, setShowLog] = useState(true); // Toggle between Log and Preview
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Toggle Sidebar Visibility
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Toggle Sidebar Visibility
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [analytics, setAnalytics] = useState<{ total: number; daily: number } | null>(null);
   const [copiedFeedback, setCopiedFeedback] = useState(false);

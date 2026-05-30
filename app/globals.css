@@ -192,10 +192,20 @@ button {
   60% { transform: scale(1.02) translate(1px, 1px); }
   70% { filter: brightness(1.5); transform: scale(1.02) skewX(-3deg); box-shadow: 0 0 15px 8px rgba(255,255,255,0.8), 0 0 25px 10px rgba(0, 255, 255, 0.5); }
   80% { transform: scale(1.02) skewX(2deg); }
-  100% { filter: brightness(1.2); transform: scale(1.02); box-shadow: 0 0 15px 5px rgba(255,255,255,0.6), 0 0 20px 10px rgba(0, 255, 255, 0.4); }
+  100% { filter: brightness(1.2); transform: scale(1.02); box-shadow: 0 0 15px 5px rgba(255,255,255,0.6), 0 0 20px 10px rgba(0, 255, 0, 0.4); }
 }
 
 @keyframes scanlineMove {
   0% { transform: translateY(0); }
   100% { transform: translateY(30%); }
+}
+
+/* Prevent full page elastic scrolling/bouncing on iPad / mobile devices during drag & drop */
+.main-container {
+  touch-action: none; /* Prevents default panning and zooming on the container, stopping overall page scroll */
+}
+
+/* Allow scrolling ONLY inside scrollable elements like the logs or previews */
+.log-area, .log-window-content, .graveyard-banished-preview-content {
+  touch-action: pan-y; /* Allow vertical scroll in scrollable containers */
 }
