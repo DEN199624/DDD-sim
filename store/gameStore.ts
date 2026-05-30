@@ -2352,7 +2352,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                 validZones.push({ type: 'EXTRA_MONSTER_ZONE', index: 0 });
             } else if (extraMonsterZones[0] !== null) {
                 const occupant = cards[extraMonsterZones[0]!];
-                if (occupant.cardId === 'c017' || occupant.cardId === 'c028') {
+                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038') {
                     if (monsterZones[0] === null) validZones.push({ type: 'MONSTER_ZONE', index: 0 });
                     if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
                     if (occupant.cardId === 'c028' && monsterZones[1] === null) validZones.push({ type: 'MONSTER_ZONE', index: 1 });
@@ -2364,7 +2364,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                 validZones.push({ type: 'EXTRA_MONSTER_ZONE', index: 1 });
             } else if (extraMonsterZones[1] !== null) {
                 const occupant = cards[extraMonsterZones[1]!];
-                if (occupant.cardId === 'c017' || occupant.cardId === 'c028') {
+                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038') {
                     if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
                     if (monsterZones[4] === null) validZones.push({ type: 'MONSTER_ZONE', index: 4 });
                     if (occupant.cardId === 'c028' && monsterZones[3] === null) validZones.push({ type: 'MONSTER_ZONE', index: 3 });
@@ -4541,6 +4541,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             logs: [],
             isEffectActivated: false,
             currentStepIndex: -1,
+            beyondLockActive: false,
 
             // Handtraps & Simulation Flags
             ashBlossomUsed: false,
