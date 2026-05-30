@@ -4976,6 +4976,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             set({ isHistoryBatching: false, isBatching: false });
             // 3. Manually push history ONCE after all moves are complete
             get().pushHistory();
+            get().processPendingEffects();
+            get().processUiQueue();
         }
     },
 
@@ -5410,8 +5412,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const { cards, beyondLockActive } = get();
         const card = cards[cardId];
         if (beyondLockActive && card?.cardId !== 'c038') {
-            console.warn('Cannot activate card effects due to the lock effect of Beyond the Pendulum.');
-            return;
+            if (card?.type === 'MONSTER') {
+                console.warn('Cannot activate monster or pendulum effects due to the lock effect of Beyond the Pendulum.');
+                return;
+            }
         }
 
         // Highlight for Replay
