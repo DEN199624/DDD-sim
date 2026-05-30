@@ -4976,8 +4976,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
             set({ isHistoryBatching: false, isBatching: false });
             // 3. Manually push history ONCE after all moves are complete
             get().pushHistory();
-            get().processPendingEffects();
-            get().processUiQueue();
+            
+            // Allow React to render Beyond on the field before starting the dialog UI queue
+            setTimeout(() => {
+                get().processPendingEffects();
+                get().processUiQueue();
+            }, 300);
         }
     },
 
@@ -5783,8 +5787,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                                                     destroyCard(target2);
 
                                                                     sFinal.addLog(sFinal.language === 'ja'
-                                                                        ? `軌跡の魔術師の効果により、[${name1}] と [${name2}] を破壊しました。`
-                                                                        : `Destroyed [${name1}] and [${name2}] by the effect of Beyond the Pendulum.`);
+                                                                        ? `${name1}&${name2}破壊（ビヨンド効果）`
+                                                                        : `Destroyed ${name1} & ${name2} (Beyond effect)`);
                                                                 }
                                                             );
                                                         }
