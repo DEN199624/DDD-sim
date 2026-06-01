@@ -4309,8 +4309,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
         }
         return {
-            deck: newDeck,
-            logs: [formatLog('log_deck_shuffled'), ...state.logs]
+            deck: newDeck
         };
     }),
 
@@ -4363,8 +4362,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
 
         return {
-            deck: newDeck,
-            logs: [formatLog('log_deck_sorted'), ...state.logs]
+            deck: newDeck
         };
     }),
 
@@ -4516,9 +4514,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // Final Deck = Current Deck + Off-Deck cards (appended to top/index 0 for simplicity, or just anywhere).
         // User wants "Deck contents not reset", implying the custom set-up remains.
         const finalizedDeck = [...offDeckMain, ...state.deck];
-        const sortedExtraDeck = sortExtraDeck(extraInstances, state.cards);
+
+        // Reset face-up state for all Extra Deck cards to face-down (false)
+        const newCards = { ...state.cards };
+        extraInstances.forEach(id => {
+            if (newCards[id]) {
+                newCards[id] = { ...newCards[id], faceUp: false };
+            }
+        });
+
+        const sortedExtraDeck = sortExtraDeck(extraInstances, newCards);
 
         set({
+            cards: newCards,
             deck: finalizedDeck,
             extraDeck: sortedExtraDeck,
             hand: [],
