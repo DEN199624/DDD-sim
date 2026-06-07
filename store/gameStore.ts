@@ -1039,7 +1039,11 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                                     const cardDef = s3.cards[selectedId];
                                     const isExMonster = cardDef.subType?.includes('FUSION') || cardDef.subType?.includes('SYNCHRO') || cardDef.subType?.includes('XYZ') || cardDef.subType?.includes('LINK');
 
-                                    if (isExMonster) {
+                                    const isFromMonsterZone = s3.monsterZones.includes(selectedId) || s3.extraMonsterZones.includes(selectedId);
+                                    if (cardDef.cardId === 'c032' && isFromMonsterZone) {
+                                        s3.moveCard(selectedId, 'EXTRA_DECK', 0, undefined, false, false, 'SURVEYOR_BOUNCE', true);
+                                        s3.addLog(formatLog('log_scale_surveyor_bounced', { card: getCardName(cardDef, s3.language) }));
+                                    } else if (isExMonster) {
                                         s3.moveCard(selectedId, 'EXTRA_DECK', 0, undefined, false, false, undefined, true);
                                         s3.addLog(formatLog('log_scale_surveyor_bounced', { card: getCardName(cardDef, s3.language) }));
                                     } else {
@@ -2570,6 +2574,7 @@ interface GameStore extends GameState {
     removeExtraDeckCopy: (cardId: string) => void;
     setSelectedDeckCardId: (id: string | null) => void;
     resetGame: () => void;
+    resetTurn: () => void;
 
     cancelPendulumSummon: () => void;
     resolvePendulumSelection: (selectedIds: string[]) => void;
@@ -3089,6 +3094,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
             if (!determinedFromLocation || determinedFromLocation === 'HAND') {
                 // console.log(`Debug moveCard Inference: Card ${cardId} (${startState.cards[cardId]?.name}) detected in ${determinedFromLocation}. Hand includes? ${startState.hand.includes(cardId)}`);
             }
+        }
+
+        // Block Special Summon of restricted Arc Crisis (c032) from Extra Deck
+        const cardDef = startState.cards[cardId];
+        if (cardDef?.cardId === 'c032' && determinedFromLocation === 'EXTRA_DECK' && (toZone === 'MONSTER_ZONE' || toZone === 'EXTRA_MONSTER_ZONE') && startState.turnEffectUsage['c032_cannot_summon']) {
+            const s = get();
+            s.addLog(s.language === 'ja'
+                ? 'このターン、アーク・クライシスは特殊召喚できません。'
+                : 'Arc Crisis cannot be Special Summoned this turn.');
+            return;
         }
 
         // 1. Block Graveyard <-> Banished Drag (User Request)
@@ -3656,7 +3671,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         const isPendulumAny = card.subType?.includes('PENDULUM');
 
                         let newFaceUpState = false;
-                        if (isMainDeckP) {
+                        if (summonVariant === 'SURVEYOR_BOUNCE') {
+                            newFaceUpState = false;
+                            newState.turnEffectUsage = {
+                                ...newState.turnEffectUsage,
+                                c032_cannot_summon: 1
+                            };
+                        } else if (isMainDeckP) {
                             newFaceUpState = true;
                         } else if (isPendulumAny && isFromField) {
                             // Hybrid Pendulum moving from Field -> Extra Deck (Face-Up)
@@ -4581,6 +4602,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
             targetingState: { isOpen: false, filter: null, onSelect: null, mode: 'normal' },
             zoneSelectionState: { isOpen: false, title: '', filter: null, onSelect: null },
         });
+    },
+
+    resetTurn: () => {
+        get().pushHistory();
+        set((state) => ({
+            turnEffectUsage: {},
+            normalSummonUsed: false,
+            pendulumSummonCount: 0,
+            beyondLockActive: false,
+            summonCount: 0,
+            ashBlossomUsed: false,
+            infiniteImpermanenceUsed: false,
+            nibiruUsed: false,
+            impulseUsed: false,
+            drollUsed: false,
+            drollActive: false,
+            zeusNegationUsed: false,
+        }));
     },
 
     startSynchroSummon: (extraDeckCardId) => {
@@ -5696,6 +5735,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const edCandidates = state.extraDeck.filter(id => {
             const c = state.cards[id];
             const effLv = getEffLevel(id);
+            if (c.cardId === 'c032' && state.turnEffectUsage['c032_cannot_summon']) {
+                return false;
+            }
             return c.subType?.includes('PENDULUM') && effLv > min && effLv < max;
         });
 
