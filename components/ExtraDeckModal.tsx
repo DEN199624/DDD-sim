@@ -86,7 +86,18 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
 
         // 4. Link (Refined for Gilgamesh)
         if (card.subType?.includes('LINK')) {
-            const monsterIds = [...monsterZones, ...useGameStore.getState().extraMonsterZones].filter((id): id is string => id !== null);
+            const storeState = useGameStore.getState();
+            if (card.cardId === 'c038') {
+                const isGilgameshUsed = (storeState.turnEffectUsage['c017'] || 0) > 0;
+                const isZeroKingUsed = (storeState.turnEffectUsage['c034'] || 0) > 0;
+                const isOrthrosHandSSUsed = (storeState.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+
+                if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                    return false;
+                }
+            }
+
+            const monsterIds = [...monsterZones, ...storeState.extraMonsterZones].filter((id): id is string => id !== null);
             const monsters = monsterIds.map(id => cards[id]);
 
             if (card.cardId === 'c028') {
@@ -173,6 +184,18 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
 
     const handleCardClick = (cardId: string) => {
         const card = cards[cardId];
+        if (!card) return;
+
+        if (card.cardId === 'c038') {
+            const storeState = useGameStore.getState();
+            const isGilgameshUsed = (storeState.turnEffectUsage['c017'] || 0) > 0;
+            const isZeroKingUsed = (storeState.turnEffectUsage['c034'] || 0) > 0;
+            const isOrthrosHandSSUsed = (storeState.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+
+            if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                return;
+            }
+        }
 
         // Link Summon Logic (Gilgamesh / generic Link)
         if (card.subType?.includes('LINK')) {

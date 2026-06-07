@@ -2955,7 +2955,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // If we reach here, the Queue is empty and UI is not busy.
         // Release the Global Lock.
         if (state.isEffectActivated) {
-            useGameStore.setState({ isEffectActivated: false, activeEffectCardId: null });
+            useGameStore.setState({ isEffectActivated: false, activeEffectCardId: null, isHistoryBatching: false });
+            get().pushHistory();
         }
     },
 
@@ -5584,7 +5585,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     pushHistory: () => {
         const state = get();
         // If batching history, do not push yet.
-        if (state.isHistoryBatching) return;
+        if (
+            state.isHistoryBatching ||
+            state.isBatching ||
+            state.isEffectActivated ||
+            state.effectSelectionState.isOpen ||
+            state.targetingState.isOpen ||
+            state.searchState.isOpen ||
+            state.zoneSelectionState.isOpen ||
+            state.isPendulumSummoning
+        ) return;
 
         set((state) => {
             // Snapshot
