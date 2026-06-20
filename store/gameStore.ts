@@ -1175,6 +1175,95 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
             }, false, selfId);
         }
     },
+    // DD Vice Typhoon Logic (c039)
+    'c039': (store, selfId, fromLocation) => {
+        if (fromLocation) return;
+        const currentStore = useGameStore.getState();
+        if (currentStore.turnEffectUsage['c039_effect']) return;
+
+        if (currentStore.graveyard.includes(selfId)) {
+            const hasOtherDD = currentStore.graveyard.some((id: string) => id !== selfId && isDDArchetype(currentStore.cards[id]) && currentStore.cards[id].type === 'MONSTER');
+            if (!hasOtherDD) return;
+
+            // Check if there is DDD Flame High King Genghis (c019) in Extra Deck
+            const hasTemujin = currentStore.extraDeck.some((id: string) => currentStore.cards[id].cardId === 'c019');
+            if (!hasTemujin) return;
+
+            store.startEffectSelection(
+                formatLog('prompt_typhoon_fusion'),
+                [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
+                (choice: string, isNegated?: boolean) => {
+                    const s = useGameStore.getState();
+                    if (choice === 'yes' && isNegated) { s.addTurnEffectUsage('c039_effect', selfId); return; }
+                    if (isNegated) return;
+                    if (choice === 'yes') {
+                        if (s.turnEffectUsage['c039_effect']) return;
+
+                        const fusionId = s.extraDeck.find((id: string) => s.cards[id].cardId === 'c019');
+                        if (!fusionId) {
+                            s.addLog(formatLog('log_no_fusion_in_ex'));
+                            return;
+                        }
+
+                        s.startSearch(
+                            (c: any) => {
+                                const s3 = useGameStore.getState();
+                                return s3.graveyard.includes(c.id) && isDDArchetype(c) && c.type === 'MONSTER' && c.id !== selfId;
+                            },
+                            (matId: string) => {
+                                const { moveCard, addLog, cards, addTurnEffectUsage, monsterZones, extraMonsterZones, startZoneSelection } = useGameStore.getState();
+
+                                addTurnEffectUsage('c039_effect', selfId);
+
+                                // 1. Banish materials
+                                useGameStore.setState({ isMaterialMove: true });
+                                moveCard(selfId, 'BANISHED', 0, undefined, true);
+                                moveCard(matId, 'BANISHED', 0, undefined, true);
+                                useGameStore.setState({ isMaterialMove: false });
+
+                                // 2. Select Zone and Move Fusion Card
+                                const s4 = useGameStore.getState();
+                                const emptyMZ = s4.monsterZones.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+                                const emptyEMZ = s4.extraMonsterZones.map((v, i) => v === null ? i : -1).filter(i => i !== -1);
+
+                                if (emptyMZ.length > 0 || emptyEMZ.length > 0) {
+                                    startZoneSelection(
+                                        formatLog('prompt_select_zone_fusion'),
+                                        (t: string, i: number) => {
+                                            const s = useGameStore.getState();
+                                            if (t === 'MONSTER_ZONE') {
+                                                return s.monsterZones[i] === null;
+                                            }
+                                            if (t === 'EXTRA_MONSTER_ZONE') {
+                                                const emzOccupied = s.extraMonsterZones[0] !== null || s.extraMonsterZones[1] !== null;
+                                                if (emzOccupied) return false;
+                                                return s.extraMonsterZones[i] === null;
+                                            }
+                                            return false;
+                                        },
+                                        (t: string, i: number) => {
+                                            const s = useGameStore.getState();
+                                            const name1 = getCardName(s.cards[selfId], s.language);
+                                            const name2 = getCardName(s.cards[matId], s.language);
+                                            // c039 fusion summon log
+                                            s.moveCard(fusionId, t as any, i, undefined, false, true, `mats:${name1}＋${name2}`, true);
+                                            s.addLog(formatLog('log_typhoon_fusion', { card: getCardName(s.cards[fusionId], s.language) }) + `（素材：${name1}＋${name2}）`);
+                                        }
+                                    );
+                                } else {
+                                    addLog(formatLog('log_no_available_zones'));
+                                }
+                            },
+                            formatLog('prompt_select_material'),
+                            s.graveyard
+                        );
+                    }
+                },
+                false,
+                selfId
+            );
+        }
+    },
 
     // Dark Contract with the Witch (c016)
     'c016': (store, selfId, fromLocation) => {
@@ -3414,7 +3503,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     // 2. Tribute Logic
                     if (!isSpecialSummon && card.level && card.level >= 5) {
                         const tributeCount = state.monsterZones.filter(id => id).length;
-                        const req = card.level >= 7 ? 2 : 1;
+                        const req = (card.level >= 7 && card.cardId !== 'c039') ? 2 : 1;
                         if (tributeCount < req) {
                             // User Request: Allow SS-like behavior via Drag.
                             // Instead of blocking, we just Log a warning.

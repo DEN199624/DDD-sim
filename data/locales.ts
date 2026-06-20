@@ -236,6 +236,7 @@ export const LOCALE_JA: { [key: string]: string } = {
     'log_contract_search': '{card}をサーチ（地獄門の契約書効果）',
     'log_swirl_fusion': 'スワラル・スライムの効果で{card}を融合召喚',
     'log_necro_fusion': 'ネクロ・スライムの効果で{card}を融合召喚',
+    'log_typhoon_fusion': 'テュポーンの効果で{card}を融合召喚',
     'log_copernicus_dump': '{card}を墓地へ送る（DD魔導賢者コペルニクス効果）',
     'log_lamia_ss': 'ラミアを特殊召喚',
     'log_gryphon_ss': 'グリフォンを特殊召喚',
@@ -336,6 +337,7 @@ export const LOCALE_JA: { [key: string]: string } = {
     'prompt_select_rank_4_dd': 'ランク4の「DD」Xyzを選択してください',
 
     'prompt_necro_slime_fusion': 'ネクロ・スライム：墓地融合？',
+    'prompt_typhoon_fusion': 'テュポーン：墓地融合？',
     'label_fusion_monster_select': '融合モンスターを選択してください',
     'log_fusion_select': '{card}を選択。墓地から「DD」素材を1体選択。',
     'prompt_witch_destroy': '魔女の契約書：カード1枚を破壊？',

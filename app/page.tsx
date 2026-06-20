@@ -135,6 +135,7 @@ export default function Home() {
     'DDD天空王ゼウス・ラグナロク': 'ゼウス',
     'マルチャミー・フワロス': 'フワロス',
     '軌跡の魔術師': 'ビヨンド',
+    'DDヴァイス・テュポーン': 'テュポーン',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -245,6 +246,17 @@ export default function Home() {
       // Ensure Multchummy Fuwaross (c037) is to the right of Necro Slime (c015)
       if (a === 'c015' && idB === 'c037') return -1;
       if (a === 'c037' && idB === 'c015') return 1;
+
+      // Vice Typhoon (c039) should be to the immediate right of Defense Soldier (c033)
+      // Order: c033 (Defense) -> c039 (Typhoon) -> c015 (Necro) -> c037 (Fuwaross)
+      if (a === 'c033' && idB === 'c039') return -1;
+      if (a === 'c039' && idB === 'c033') return 1;
+
+      if (a === 'c039' && idB === 'c015') return -1;
+      if (a === 'c015' && idB === 'c039') return 1;
+
+      if (a === 'c039' && idB === 'c037') return -1;
+      if (a === 'c037' && idB === 'c039') return 1;
 
       // User Request: Swamp King (c006) vs Zero King (c034)
       if (a === 'c006' && idB === 'c034') return -1;

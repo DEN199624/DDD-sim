@@ -464,5 +464,18 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250608/20250608212524.jpg',
         nameJa: '原始生命態トークン',
         descriptionJa: '「原始生命態ニビル」の効果で特殊召喚される。'
+    },
+    'c039': {
+        cardId: 'c039',
+        name: 'DD Vice Typhoon',
+        type: 'MONSTER',
+        subType: 'EFFECT',
+        description: '[Ignition-GY] Banish this card and 1 other "DD" or "DDD" monster from your GY; Fusion Summon 1 "DDD Flame High King Genghis" from your Extra Deck.',
+        attack: 2300,
+        defense: 2800,
+        level: 7,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324193722.png',
+        nameJa: 'DDヴァイス・テュポーン',
+        descriptionJa: 'このカード名の効果は１ターンに１度しか使用できない。\n(1)：このカードが墓地に存在する場合に発動できる。自分の墓地から、このカードを含む「DDD」融合モンスターによって決められた融合素材モンスターを除外し、その融合モンスター１体をＥＸデッキから融合召喚する。この効果で融合召喚できるのは「DDD烈火大王エグゼクティブ・テムジン」のみ。'
     }
 };
