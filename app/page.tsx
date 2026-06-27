@@ -136,6 +136,7 @@ export default function Home() {
     'マルチャミー・フワロス': 'フワロス',
     '軌跡の魔術師': 'ビヨンド',
     'DDヴァイス・テュポーン': 'テュポーン',
+    'DDリビルド': 'リビルド',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -211,6 +212,8 @@ export default function Home() {
     // User Request: Fix Main Deck duplicates (Singleton display).
     // Sorting Order: P-Monsters (Level Asc), Non-P Monsters, Spells, Traps
     const sortedMain = [...mainDeckCandidates].sort((a, idB) => {
+      if (a === 'c040') return 1;
+      if (idB === 'c040') return -1;
       const cardA = CARD_DATABASE[a];
       const cardB = CARD_DATABASE[idB];
 

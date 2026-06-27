@@ -531,7 +531,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                     if (isNegated) return;
                     if (choice === 'yes') {
                         const currentStore = useGameStore.getState();
-                        const handDD = currentStore.hand.filter(id => id !== selfId && isDDArchetype(currentStore.cards[id]));
+                        const handDD = currentStore.hand.filter(id => id !== selfId && isDDArchetype(currentStore.cards[id]) && currentStore.cards[id].type === 'MONSTER');
 
                         if (handDD.length === 0) {
                             currentStore.addLog(formatLog('log_error_condition'));
@@ -1247,7 +1247,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                                             const name2 = getCardName(s.cards[matId], s.language);
                                             // c039 fusion summon log
                                             s.moveCard(fusionId, t as any, i, undefined, false, true, `mats:${name1}＋${name2}`, true);
-                                            s.addLog(formatLog('log_typhoon_fusion', { card: getCardName(s.cards[fusionId], s.language) }) + `（素材：${name1}＋${name2}）`);
+                                            s.addLog(formatLog('log_typhoon_fusion', { card: getCardName(s.cards[fusionId], s.language) }) + `（${name1}＋${name2}）`);
                                         }
                                     );
                                 } else {
@@ -1261,6 +1261,117 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                 },
                 false,
                 selfId
+            );
+        }
+    },
+
+    // DD Rebuild (c040) GY activation
+    'c040': (store, selfId, fromLocation) => {
+        if (fromLocation) return;
+        const currentStore = useGameStore.getState();
+        if (currentStore.graveyard.includes(selfId)) {
+            const banishedDD = currentStore.banished.filter((id: string) => 
+                isDDArchetype(currentStore.cards[id]) && currentStore.cards[id].cardId !== 'c040'
+            );
+            if (banishedDD.length === 0) return;
+
+            store.startEffectSelection(
+                currentStore.language === 'ja' ? 'DDリビルドの効果を発動しますか？' : 'Activate the effect of DD Rebuild?',
+                [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
+                (choice: string, isNegated?: boolean) => {
+                    if (isNegated) return;
+                    if (choice === 'yes') {
+                        const s = useGameStore.getState();
+                        useGameStore.setState({ isMaterialMove: true });
+                        s.moveCard(selfId, 'BANISHED', 0, undefined, true);
+                        useGameStore.setState({ isMaterialMove: false });
+                        
+                        s.addLog(s.language === 'ja' ? '墓地のDDリビルドの効果を発動！自身を除外。' : 'Activated GY effect of DD Rebuild! Banish itself.');
+
+                        const selectedIds: string[] = [];
+
+                        const selectNextCard = () => {
+                            const stateNow = useGameStore.getState();
+                            const targetOptions = stateNow.banished.filter((id: string) => 
+                                isDDArchetype(stateNow.cards[id]) && 
+                                stateNow.cards[id].cardId !== 'c040' && 
+                                !selectedIds.includes(id)
+                            );
+
+                            const options = targetOptions.map((id: string) => ({
+                                label: getCardName(stateNow.cards[id], stateNow.language),
+                                value: id,
+                                imageUrl: stateNow.cards[id].imageUrl
+                            }));
+
+                            if (selectedIds.length > 0) {
+                                options.unshift({
+                                    label: stateNow.language === 'ja' ? '選択完了' : 'Done Selection',
+                                    value: 'DONE',
+                                    imageUrl: undefined
+                                });
+                            }
+
+                            if (options.length === 0 || selectedIds.length >= 3) {
+                                resolveReturnToDeck(selectedIds);
+                                return;
+                            }
+
+                            stateNow.startEffectSelection(
+                                stateNow.language === 'ja' 
+                                    ? `デッキに戻すカードを選択してください (${selectedIds.length}/3)` 
+                                    : `Select card to return to Deck (${selectedIds.length}/3)`,
+                                options,
+                                (val: string) => {
+                                    if (val === 'DONE') {
+                                        resolveReturnToDeck(selectedIds);
+                                    } else {
+                                        selectedIds.push(val);
+                                        selectNextCard();
+                                    }
+                                }
+                            );
+                        };
+
+                        const resolveReturnToDeck = (ids: string[]) => {
+                            if (ids.length === 0) return;
+                            useGameStore.setState({ isBatching: true });
+                            try {
+                                const sFinal = useGameStore.getState();
+                                const returnedNames: string[] = [];
+                                let hasMainDeckCard = false;
+
+                                ids.forEach((id) => {
+                                    const card = sFinal.cards[id];
+                                    const st = card.subType ? card.subType.toUpperCase() : '';
+                                    const isExtra = st.includes('FUSION') || st.includes('SYNCHRO') || st.includes('XYZ') || st.includes('LINK');
+
+                                    returnedNames.push(getCardName(card, sFinal.language));
+
+                                    if (isExtra) {
+                                        sFinal.moveCard(id, 'EXTRA_DECK', 0, undefined, true);
+                                    } else {
+                                        sFinal.moveCard(id, 'DECK', 0, undefined, true);
+                                        hasMainDeckCard = true;
+                                    }
+                                });
+
+                                if (hasMainDeckCard) {
+                                    sFinal.shuffleDeck();
+                                }
+
+                                sFinal.addLog(sFinal.language === 'ja'
+                                    ? `除外ゾーンの [${returnedNames.join(', ')}] をデッキ/EXデッキに戻しました。`
+                                    : `Returned [${returnedNames.join(', ')}] from banished zone to Deck/Extra Deck.`);
+                            } finally {
+                                useGameStore.setState({ isBatching: false });
+                                useGameStore.getState().processUiQueue();
+                            }
+                        };
+
+                        selectNextCard();
+                    }
+                }
             );
         }
     },
@@ -3507,7 +3618,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         if (tributeCount < req) {
                             // User Request: Allow SS-like behavior via Drag.
                             // Instead of blocking, we just Log a warning.
-                            logWarnings += ` ${formatLog('log_warn_tribute', { level: card.level?.toString() || '0' })}`;
+                            // logWarnings += ` ${formatLog('log_warn_tribute', { level: card.level?.toString() || '0' })}`;
                         } else {
                             if (!isSpecialSummon) {
                                 isNormalSummon = true;

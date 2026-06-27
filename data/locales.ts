@@ -236,7 +236,7 @@ export const LOCALE_JA: { [key: string]: string } = {
     'log_contract_search': '{card}をサーチ（地獄門の契約書効果）',
     'log_swirl_fusion': 'スワラル・スライムの効果で{card}を融合召喚',
     'log_necro_fusion': 'ネクロ・スライムの効果で{card}を融合召喚',
-    'log_typhoon_fusion': 'テュポーンの効果で{card}を融合召喚',
+    'log_typhoon_fusion': '{card}を融合召喚',
     'log_copernicus_dump': '{card}を墓地へ送る（DD魔導賢者コペルニクス効果）',
     'log_lamia_ss': 'ラミアを特殊召喚',
     'log_gryphon_ss': 'グリフォンを特殊召喚',

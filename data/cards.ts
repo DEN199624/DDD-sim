@@ -477,5 +477,15 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324193722.png',
         nameJa: 'DDヴァイス・テュポーン',
         descriptionJa: 'このカード名の効果は１ターンに１度しか使用できない。\n(1)：このカードが墓地に存在する場合に発動できる。自分の墓地から、このカードを含む「DDD」融合モンスターによって決められた融合素材モンスターを除外し、その融合モンスター１体をＥＸデッキから融合召喚する。この効果で融合召喚できるのは「DDD烈火大王エグゼクティブ・テムジン」のみ。'
+    },
+    'c040': {
+        cardId: 'c040',
+        name: 'DD Rebuild',
+        nameJa: 'DDリビルド',
+        type: 'TRAP',
+        subType: 'NORMAL',
+        description: '[GY Effect] Banish this card; return up to 3 banished "DD" cards (except "DD Rebuild") to Deck/Extra Deck.',
+        descriptionJa: '(1)：墓地のこのカードを除外し、除外されている自分の「DD」カード（「DDリビルド」以外）を３枚まで対象として発動できる。そのカードをデッキに戻す。ＥＸデッキから除外されていたカードはＥＸデッキに戻る。',
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250325/20250325171517.png'
     }
 };
