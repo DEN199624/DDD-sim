@@ -487,5 +487,18 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         description: '[GY Effect] Banish this card; return up to 3 banished "DD" cards (except "DD Rebuild") to Deck/Extra Deck.',
         descriptionJa: '(1)：墓地のこのカードを除外し、除外されている自分の「DD」カード（「DDリビルド」以外）を３枚まで対象として発動できる。そのカードをデッキに戻す。ＥＸデッキから除外されていたカードはＥＸデッキに戻る。',
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250325/20250325171517.png'
+    },
+    'c041': {
+        cardId: 'c041',
+        name: 'DDD Gust High King Alexander',
+        nameJa: 'DDD疾風大王エグゼクティブ・アレクサンダー',
+        type: 'MONSTER',
+        subType: 'SYNCHRO/EFFECT',
+        description: 'Level 10 Synchro. Tuner + 1+ non-Tuner monsters. [Monster Effect] If another "DD" monster is Normal or Special Summoned to your field: You can target 1 "DD" monster in your GY; Special Summon it.',
+        descriptionJa: 'チューナー＋チューナー以外のモンスター１体以上\nこのカード名の(1)の効果は１ターンに１度しか使用できない。\n(1)：このカードがモンスターゾーンに存在し、自分フィールドにこのカード以外の「DD」モンスターが召喚・特殊召喚された場合、自分の墓地の「DD」モンスター１体を対象として発動できる。そのモンスターを特殊召喚する。',
+        attack: 3000,
+        defense: 2500,
+        level: 10,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324230732.png'
     }
 };

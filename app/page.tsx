@@ -137,6 +137,7 @@ export default function Home() {
     '軌跡の魔術師': 'ビヨンド',
     'DDヴァイス・テュポーン': 'テュポーン',
     'DDリビルド': 'リビルド',
+    'DDD疾風大王エグゼクティブ・アレクサンダー': '大王アレクサンダー',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -203,6 +204,13 @@ export default function Home() {
       const orderA = getExtraDeckOrder(a);
       const orderB = getExtraDeckOrder(b);
       if (orderA !== orderB) return orderA - orderB;
+
+      // c041 (Executive Alexander) should be placed immediately to the right of c020 (Siegfried)
+      if (a === 'c020' && b === 'c041') return -1;
+      if (a === 'c041' && b === 'c020') return 1;
+      if (a === 'c041' && ['c026', 'c035'].includes(b)) return -1;
+      if (['c026', 'c035'].includes(a) && b === 'c041') return 1;
+
       if (a === 'c028' && b === 'c038') return -1;
       if (a === 'c038' && b === 'c028') return 1;
       return a.localeCompare(b);

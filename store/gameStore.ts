@@ -391,6 +391,10 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
         // (Also has a negation effect, but focusing on SS per user request)
         EFFECT_LOGIC['c007'](store, selfId, fromLocation);
     },
+    'c041': (store, selfId, fromLocation) => {
+        // Executive Alexander shares the same SS trigger logic as Genghis
+        EFFECT_LOGIC['c007'](store, selfId, fromLocation);
+    },
     'c008': (store, selfId, fromLocation) => {
         // Abyss Ragnarok
         const isMonster = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
@@ -4309,8 +4313,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             if (mid !== cardId && !s.turnEffectUsage[optKey] && s.graveyard.some(g => s.cards[g].name.includes('DD') && s.cards[g].type === 'MONSTER')) {
                                 candidates.push(mid);
                             }
-                        } else if (card.cardId === 'c019') {
-                            // High King Genghis: Normal OR Special Summon
+                        } else if (card.cardId === 'c019' || card.cardId === 'c041') {
+                            // High King Genghis or Executive Alexander: Normal OR Special Summon
                             // (Condition is handled by outer if)
 
                             const optKey = `${card.name}_opt`;
@@ -5335,7 +5339,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (!mid || mid === xyzCardId) return;
                 if (stateAfterXyz.cardPropertyModifiers[mid]?.isNegated) return;
                 const card = stateAfterXyz.cards[mid];
-                if (card.cardId === 'c007' || card.cardId === 'c019') {
+                if (card.cardId === 'c007' || card.cardId === 'c019' || card.cardId === 'c041') {
                     const optKey = `${card.name}_opt`;
                     if (!stateAfterXyz.turnEffectUsage[optKey] && stateAfterXyz.graveyard.some(g => stateAfterXyz.cards[g].name.includes('DD') && stateAfterXyz.cards[g].type === 'MONSTER')) {
                         candidates.push(mid);
@@ -6543,7 +6547,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const cardDef = store.cards[cardId];
             if (cardDef && EFFECT_LOGIC[cardDef.cardId]) {
                 const isAbyssInPZone = cardDef.cardId === 'c008' && [0, 4].some(idx => get().spellTrapZones[idx] === cardId);
-                if (cardDef.cardId !== 'c007' && cardDef.cardId !== 'c019' && !isAbyssInPZone) {
+                if (cardDef.cardId !== 'c007' && cardDef.cardId !== 'c019' && cardDef.cardId !== 'c041' && !isAbyssInPZone) {
                     store.addLog(formatLog('log_trigger_activated', { card: getCardName(cardDef, store.language) }));
                 }
                 // Execute logic as 'TRIGGER'
