@@ -1283,10 +1283,8 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                     if (choice === 'yes') {
                         const s = useGameStore.getState();
                         useGameStore.setState({ isMaterialMove: true });
-                        s.moveCard(selfId, 'BANISHED', 0, undefined, true);
+                        s.moveCard(selfId, 'BANISHED', 0, undefined, true, false, undefined, true);
                         useGameStore.setState({ isMaterialMove: false });
-                        
-                        s.addLog(s.language === 'ja' ? '墓地のDDリビルドの効果を発動！自身を除外。' : 'Activated GY effect of DD Rebuild! Banish itself.');
 
                         const selectedIds: string[] = [];
 
@@ -1349,9 +1347,9 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                                     returnedNames.push(getCardName(card, sFinal.language));
 
                                     if (isExtra) {
-                                        sFinal.moveCard(id, 'EXTRA_DECK', 0, undefined, true);
+                                        sFinal.moveCard(id, 'EXTRA_DECK', 0, undefined, true, false, undefined, true);
                                     } else {
-                                        sFinal.moveCard(id, 'DECK', 0, undefined, true);
+                                        sFinal.moveCard(id, 'DECK', 0, undefined, true, false, undefined, true);
                                         hasMainDeckCard = true;
                                     }
                                 });
@@ -1361,8 +1359,8 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                                 }
 
                                 sFinal.addLog(sFinal.language === 'ja'
-                                    ? `除外ゾーンの [${returnedNames.join(', ')}] をデッキ/EXデッキに戻しました。`
-                                    : `Returned [${returnedNames.join(', ')}] from banished zone to Deck/Extra Deck.`);
+                                    ? `${returnedNames.join('&')}をデッキに戻す（DDリビルド効果）`
+                                    : `${returnedNames.join('&')}をデッキに戻す（DDリビルド効果）`);
                             } finally {
                                 useGameStore.setState({ isBatching: false });
                                 useGameStore.getState().processUiQueue();

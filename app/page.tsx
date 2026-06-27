@@ -424,6 +424,15 @@ export default function Home() {
         return;
       }
 
+      // Rule: Block DD Rebuild (c040) from being placed on the field from Hand
+      if (fromHand && store.cards[activeId]?.cardId === 'c040' && 
+          ['SPELL_TRAP_ZONE', 'FIELD_ZONE', 'MONSTER_ZONE', 'EXTRA_MONSTER_ZONE'].includes(zoneType)) {
+        console.warn('DD Rebuild cannot be placed on the field.');
+        setDragState(false, null);
+        setActiveCard(null);
+        return;
+      }
+
       // Rule: Block Hand to EMZ (Extra Deck monsters only)
       if (fromHand && zoneType === 'EXTRA_MONSTER_ZONE') {
         console.warn('Cannot Summon from Hand to EMZ.');
