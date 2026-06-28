@@ -393,11 +393,11 @@ export default function Home() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    // Always reset drag state
-    setDragState(false, null);
-    setActiveCard(null);
-
-    if (!over) return;
+    if (!over) {
+      setDragState(false, null);
+      setActiveCard(null);
+      return;
+    }
 
     const activeId = active.id as string;
     const overId = over.id as string;
@@ -412,6 +412,8 @@ export default function Home() {
         const hMove = arrayMove(currentDeck, oldIndex, newIndex);
         setDeck(hMove);
       }
+      setDragState(false, null);
+      setActiveCard(null);
       return;
     }
 
@@ -498,6 +500,8 @@ export default function Home() {
 
       console.log('Dropped', activeId, 'on', zoneType, index);
       moveCard(activeId, zoneType, index);
+      setDragState(false, null);
+      setActiveCard(null);
     }
 
   };

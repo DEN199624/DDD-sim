@@ -4280,7 +4280,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         // Note: If multiples, they queue up via startEffectSelection/modalQueue.
 
                         // We specifically target known cards that trigger from GY even if material
-                        const triggersFromMaterial = ['c014', 'c021', 'c022', 'c023'];
+                        const triggersFromMaterial = ['c014', 'c021'];
                         if (triggersFromMaterial.includes(matDef.cardId)) {
                             // Use 'MATERIAL' as location signature
                             logic(s, matId, 'MATERIAL');
