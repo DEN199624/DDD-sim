@@ -1617,6 +1617,15 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                             const costName = getCardName(store.cards[matId], store.language);
                             store.moveCard(matId, 'GRAVEYARD', 0, undefined, false, false, undefined, true);
                             store.addLog(formatLog('log_tell_detach', { amount: '1000', cost: costName }));
+
+                            if (store.ftkModeActive) {
+                                const newLp = Math.max(0, useGameStore.getState().opponentLp - 1000);
+                                useGameStore.setState({ opponentLp: newLp });
+                                if (newLp === 0) {
+                                    useGameStore.setState({ ftkVictory: true });
+                                    useGameStore.getState().addLog(store.language === 'ja' ? '【勝利】相手のLPが0になりました！ワンキル成功です！' : '【Victory】Opponent LP reached 0! FTK successful!');
+                                }
+                            }
                             // User feedback: Field effect is ONLY detaching material.
                             // OCG ATK/DEF loss not implemented unless requested.
                         }, false, selfId);
@@ -2828,6 +2837,10 @@ interface GameStore extends GameState {
     resetSummonCount: () => void;
     zeusNegationUsed: boolean;
     beyondLockActive: boolean;
+    ftkModeActive: boolean;
+    opponentLp: number;
+    ftkVictory: boolean;
+    setFtkModeActive: (active: boolean) => void;
 }
 
 
@@ -2853,6 +2866,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     nibiruUsed: false,
     summonCount: 0,
     showNibiruCutIn: false,
+    ftkModeActive: false,
+    opponentLp: 8000,
+    ftkVictory: false,
 
     // Simulation & Handtraps
     ashBlossomUsed: false,
@@ -2884,6 +2900,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setImpulseSimulationEnabled: (enabled: boolean) => set({ impulseSimulationEnabled: enabled }),
     setSelectedDeckCardId: (id) => set({ selectedDeckCardId: id }),
     selectedDeckCardId: null,
+    setFtkModeActive: (active) => set({
+        ftkModeActive: active,
+        opponentLp: 8000,
+        ftkVictory: false
+    }),
 
     activateNibiru: () => {
         const state = get();

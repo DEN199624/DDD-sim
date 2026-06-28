@@ -93,6 +93,9 @@ export interface GameState {
     zeusNegationUsed: boolean;
     beyondLockActive: boolean;
     showZoneInLog: boolean;
+    ftkModeActive: boolean;
+    opponentLp: number;
+    ftkVictory: boolean;
     logCount?: number; // Optional count of logs for optimized history snapshots
     isEffectActivated: boolean;
     modalQueue: Array<() => void>;
