@@ -21,6 +21,8 @@ interface Archive {
 export default function ArchiveListPage() {
     const [archives, setArchives] = useState<Archive[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadedBytes, setLoadedBytes] = useState(0);
+    const [totalBytes, setTotalBytes] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [language, setLanguage] = useState('ja'); // Default to ja
     const xKeyPressed = useRef(false);
@@ -29,16 +31,52 @@ export default function ArchiveListPage() {
     useEffect(() => {
         setLanguage('ja');
 
-        fetch('/api/archive')
-            .then(res => res.json())
-            .then(data => {
+        const loadData = async () => {
+            try {
+                const res = await fetch('/api/archive');
+                const contentLength = res.headers.get('content-length');
+                const total = contentLength ? parseInt(contentLength, 10) : null;
+                setTotalBytes(total);
+
+                const reader = res.body?.getReader();
+                if (!reader) {
+                    const data = await res.json();
+                    setArchives(data);
+                    setLoading(false);
+                    return;
+                }
+
+                const chunks: Uint8Array[] = [];
+                let loaded = 0;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        chunks.push(value);
+                        loaded += value.length;
+                        setLoadedBytes(loaded);
+                    }
+                }
+
+                const allChunks = new Uint8Array(loaded);
+                let position = 0;
+                for (const chunk of chunks) {
+                    allChunks.set(chunk, position);
+                    position += chunk.length;
+                }
+
+                const text = new TextDecoder("utf-8").decode(allChunks);
+                const data = JSON.parse(text);
                 setArchives(data);
                 setLoading(false);
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error(err);
                 setLoading(false);
-            });
+            }
+        };
+
+        loadData();
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.isComposing) return;
@@ -192,7 +230,74 @@ export default function ArchiveListPage() {
 
     const userId = getUserId();
 
-    if (loading) return <div style={{ color: '#fff', padding: '20px' }}>{formatLog('ui_loading')}</div>;
+    if (loading) {
+        const percent = totalBytes ? Math.round((loadedBytes / totalBytes) * 100) : 0;
+        const loadedMB = (loadedBytes / 1024 / 1024).toFixed(1);
+        const totalMB = totalBytes ? (totalBytes / 1024 / 1024).toFixed(1) : null;
+
+        return (
+            <div style={{
+                color: '#fff',
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#121212',
+                fontFamily: 'sans-serif'
+            }}>
+                <div className="spinning-box" style={{ fontSize: '48px', marginBottom: '20px' }}>📦</div>
+                <h2 style={{ fontSize: '18px', fontWeight: 'normal', color: '#ccc', marginBottom: '15px' }}>
+                    {formatLog('ui_loading') || '読み込み中...'}
+                </h2>
+                
+                {/* Progress Bar Container */}
+                <div style={{
+                    width: '300px',
+                    height: '6px',
+                    backgroundColor: '#333',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                    marginBottom: '10px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                }}>
+                    <div style={{
+                        width: totalBytes ? `${percent}%` : '100%',
+                        height: '100%',
+                        borderRadius: '3px',
+                        transition: 'width 0.1s ease',
+                        background: totalBytes 
+                            ? 'linear-gradient(90deg, #2196F3, #00BCD4)'
+                            : 'linear-gradient(90deg, #333, #2196F3, #333)',
+                        backgroundSize: '200% 100%',
+                        animation: totalBytes ? 'none' : 'shimmer 1.5s infinite linear',
+                    }} />
+                </div>
+
+                <div style={{ fontSize: '14px', color: '#888', fontFamily: 'monospace' }}>
+                    {totalBytes ? (
+                        `${percent}% (${loadedMB} / ${totalMB} MB)`
+                    ) : (
+                        `${loadedMB} MB`
+                    )}
+                </div>
+
+                <style jsx global>{`
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    @keyframes shimmer {
+                        0% { background-position: -200% 0; }
+                        100% { background-position: 200% 0; }
+                    }
+                    .spinning-box {
+                        animation: spin 2s linear infinite;
+                    }
+                `}</style>
+            </div>
+        );
+    }
 
     return (
         <div style={{ padding: '20px', color: '#fff', maxWidth: '1200px', margin: '0 auto' }}>

@@ -7,8 +7,7 @@ export function SimToggles() {
         drollSimulationEnabled, setDrollSimulationEnabled,
         infiniteImpermanenceSimulationEnabled, setInfiniteImpermanenceSimulationEnabled,
         nibiruSimulationEnabled, setNibiruSimulationEnabled,
-        impulseSimulationEnabled, setImpulseSimulationEnabled,
-        ftkModeActive, setFtkModeActive
+        impulseSimulationEnabled, setImpulseSimulationEnabled
     } = useGameStore();
 
     const buttonStyle = (active: boolean, activeColor: string, hoverColor: string) => ({
@@ -83,14 +82,6 @@ export function SimToggles() {
                 {nibiruSimulationEnabled ? 'ニビル ON' : 'ニビル OFF'}
             </button>
 
-            {/* FTK Mode Toggle */}
-            <button
-                onClick={() => setFtkModeActive(!ftkModeActive)}
-                style={buttonStyle(ftkModeActive, '#ff8a80', '#ff5252')}
-                title={ftkModeActive ? 'ワンキル練習モード ON' : 'ワンキル練習モード OFF'}
-            >
-                {ftkModeActive ? 'ワンキル ON' : 'ワンキル OFF'}
-            </button>
         </div>
     );
 }

@@ -143,8 +143,8 @@ const isStrictlyDDCard = (card: any): boolean => {
     return n.includes('DD') && !n.includes('DARK CONTRACT') && !nj.includes('契約書');
 };
 
-// Effect helper logic
-const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocation?: string, summonVariant?: string, isUsedAsMaterial?: boolean) => void } = {
+// Define card logics (Trigger Effects / Quick Effects when conditions are met)
+export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocation?: string, summonVariant?: string, isUsedAsMaterial?: boolean) => void } = {
 
     // One for One logic
     'c036': (store, selfId, fromLocation) => {
@@ -1609,13 +1609,17 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
         }
         // [Manual Effect] Detach is UNLIMITED (Removed Mill - just detach as per User feedback)
         if (store.isTellBuffActive && (store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId)) && !fromLocation) {
+            if (store.turnEffectUsage[`c021_detach_${selfId}`]) {
+                return;
+            }
             const materials = store.materials[selfId];
             if (materials && materials.length > 0) {
                 store.startEffectSelection(formatLog('prompt_tell_detach'), [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }], (choice: string) => {
                     if (choice === 'yes') {
                         store.startEffectSelection(formatLog('prompt_select_material'), materials.map((mid: string) => ({ label: getCardName(store.cards[mid], store.language), value: mid })), (matId: string) => {
+                            store.addTurnEffectUsage(`c021_detach_${selfId}`, selfId);
                             const costName = getCardName(store.cards[matId], store.language);
-                            store.moveCard(matId, 'GRAVEYARD', 0, undefined, false, false, undefined, true);
+                            store.moveCard(matId, 'GRAVEYARD', 0, 'MATERIAL', false, false, undefined, true);
                             store.addLog(formatLog('log_tell_detach', { amount: '1000', cost: costName }));
 
                             if (store.ftkModeActive) {
@@ -1636,7 +1640,9 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
     },
 
     'c022': (store, selfId, fromLocation) => {
-        if (store.graveyard.includes(selfId) && fromLocation !== 'MATERIAL') {
+        const flags = store.cardFlags[selfId] || [];
+        const isFromMaterial = flags.includes('from_material') || fromLocation === 'MATERIAL';
+        if (store.graveyard.includes(selfId) && !isFromMaterial) {
             // Droll & Lock Bird check (no confirmation dialog needed)
             if (useGameStore.getState().drollActive) {
                 store.addLog(formatLog('log_droll_blocked'));
@@ -1663,8 +1669,10 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
         // [Trigger Effect] If sent to GY with material: Add Contract
         const inGraveyard = store.graveyard.includes(selfId);
         const inMonsterZone = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
+        const flags = store.cardFlags[selfId] || [];
+        const isFromMaterial = flags.includes('from_material') || fromLocation === 'MATERIAL';
 
-        if (inGraveyard && fromLocation !== 'MATERIAL') {
+        if (inGraveyard && !isFromMaterial) {
             if (store.turnEffectUsage['c023_gy']) return;
             // Droll & Lock Bird check (no confirmation dialog needed)
             if (useGameStore.getState().drollActive) {
@@ -1708,7 +1716,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                             return;
                         }
                         store.startEffectSelection(formatLog('prompt_select_material'), mats.map((mid: string) => ({ label: store.cards[mid].name, value: mid })), (mid: string) => {
-                            store.moveCard(mid, 'GRAVEYARD');
+                            store.moveCard(mid, 'GRAVEYARD', 0, 'MATERIAL');
                             selectMat(count - 1, mats.filter((m: string) => m !== mid));
                         }, false, selfId);
                     };
@@ -1738,7 +1746,7 @@ const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, fromLocatio
                                 (matId: string) => {
                                     useGameStore.setState({ isBatching: true });
                                     try {
-                                        store.moveCard(matId, 'GRAVEYARD', 0, undefined, false, false, undefined, true);
+                                        store.moveCard(matId, 'GRAVEYARD', 0, 'MATERIAL', false, false, undefined, true);
                                         store.addTurnEffectUsage('c025');
 
                                         if (isNegated) return; // Detach happened but skip search
@@ -2927,7 +2935,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         const attachedMats = finalState.materials[id];
                         if (attachedMats && attachedMats.length > 0) {
                             attachedMats.forEach(matId => {
-                                finalState.moveCard(matId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+                                finalState.moveCard(matId, 'GRAVEYARD', undefined, 'MATERIAL', false, false, undefined, true);
                             });
                         }
 
@@ -3352,6 +3360,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
             useGameStore.setState({ turnEffectUsage: usage });
         }
 
+        // Reset Tell (c021) instance-specific effect usage when it leaves the field (Monster Zones)
+        if (movingCard?.cardId === 'c021' && (determinedFromLocation === 'MONSTER_ZONE' || determinedFromLocation === 'EXTRA_MONSTER_ZONE')) {
+            if (toZone !== 'MONSTER_ZONE' && toZone !== 'EXTRA_MONSTER_ZONE') {
+                const usage = { ...state.turnEffectUsage };
+                delete usage[`c021_detach_${cardId}`];
+                useGameStore.setState({ turnEffectUsage: usage });
+            }
+        }
+
         // Clear Trigger Candidates logic REMOVED (Ensures Temujin/Ragnarok triggers persist during complex effect resolutions like Gilgamesh)
         // if (startState.triggerCandidates.length > 0 && !suppressTrigger) {
         //     useGameStore.setState({ triggerCandidates: [] });
@@ -3746,6 +3763,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 // Always remove from triggerCandidates when moving (Absolute Cleanup)
                 newState.triggerCandidates = newState.triggerCandidates.filter(id => id !== cardId);
 
+                // Clear from_material flag upon moving
+                if (newState.cardFlags[cardId]) {
+                    newState.cardFlags[cardId] = newState.cardFlags[cardId].filter(f => f !== 'from_material');
+                }
+
                 if (isNormalSummon) {
                     newState.normalSummonUsed = true;
                 }
@@ -4028,6 +4050,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     const newGrave = [...newState.graveyard, ...materialsToDetach];
                     newState.graveyard = newGrave;
 
+                    // Mark detached materials with 'from_material' flag to prevent trigger from GY click
+                    const newCardFlags = { ...state.cardFlags, ...newState.cardFlags };
+                    materialsToDetach.forEach(matId => {
+                        if (!newCardFlags[matId]) {
+                            newCardFlags[matId] = [];
+                        }
+                        if (!newCardFlags[matId].includes('from_material')) {
+                            newCardFlags[matId] = [...newCardFlags[matId], 'from_material'];
+                        }
+                    });
+                    newState.cardFlags = newCardFlags;
+
                     // Remove from Materials Map (Delete key)
                     const newMaterialsMap = { ...newState.materials };
                     delete newMaterialsMap[cardId];
@@ -4078,7 +4112,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 const isCaesar = card.cardId === 'c022' || card.cardId === 'c023';
                 const sentToGY = toZone === 'GRAVEYARD' && isFromField;
-                if (isCaesar && sentToGY && !state.isLinkSummoningActive && !state.isMaterialMove) {
+                if (isCaesar && sentToGY && fromLocation !== 'MATERIAL' && !state.isLinkSummoningActive && !state.isMaterialMove) {
                     isCaesarGraveEvt = true;
                 }
 

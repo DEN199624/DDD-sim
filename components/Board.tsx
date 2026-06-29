@@ -9,7 +9,7 @@ import { formatLog } from '@/data/locales';
 
 export function Board() {
     const router = useRouter();
-    const { undo, resetGame, monsterZones, spellTrapZones, fieldZone, extraMonsterZones, graveyard, banished, extraDeck, cards, startSearch, targetingState, zoneSelectionState, startPendulumSummon, pendulumSummonCount, pendulumSummonLimit, activeEffectCardId, spellTrapZones: stZones, isReplaying, summonCount, activateNibiru, resetSummonCount, nibiruSimulationEnabled, nibiruUsed, cardPropertyModifiers, ftkModeActive, opponentLp, ftkVictory } = useGameStore();
+    const { undo, resetGame, monsterZones, spellTrapZones, fieldZone, extraMonsterZones, graveyard, banished, extraDeck, cards, startSearch, targetingState, zoneSelectionState, startPendulumSummon, pendulumSummonCount, pendulumSummonLimit, activeEffectCardId, spellTrapZones: stZones, isReplaying, summonCount, activateNibiru, resetSummonCount, nibiruSimulationEnabled, nibiruUsed, cardPropertyModifiers, ftkModeActive, setFtkModeActive, opponentLp, ftkVictory } = useGameStore();
     const isTargeting = targetingState.isOpen;
     const isSelectingZone = zoneSelectionState.isOpen;
     const [showExtra, setShowExtra] = useState(false);
@@ -74,9 +74,46 @@ export function Board() {
 
             {/* Reset Button (Col 1, Row 1 - Above Field) */}
             {/* Reset Button (Col 1, Row 1 - Above Field) */}
-            <div style={{ gridColumn: '1 / 2', gridRow: '1 / 2', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end', paddingBottom: '10px', gap: '5px' }}>
+            <div style={{ gridColumn: '1 / 2', gridRow: '1 / 2', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: '6px' }}>
+                {ftkModeActive && (
+                    <div style={{
+                        textAlign: 'center',
+                        background: '#1a1a1a',
+                        border: ftkVictory ? '1px solid #00ff00' : '1px solid #ff4444',
+                        color: ftkVictory ? '#00ff00' : '#ff4444',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        boxShadow: ftkVictory ? '0 0 10px rgba(0,255,0,0.4)' : '0 0 8px rgba(255,68,68,0.3)',
+                        textShadow: ftkVictory ? '0 0 5px #00ff00' : 'none',
+                        userSelect: 'none',
+                        zIndex: 10,
+                        width: '100%'
+                    }}>
+                        OPPONENT LP<br />
+                        <span style={{ fontSize: '12px' }}>{opponentLp}</span>
+                        {ftkVictory && <div style={{ fontSize: '9px', marginTop: '2px' }}>VICTORY!</div>}
+                    </div>
+                )}
 
-
+                <button
+                    onClick={() => setFtkModeActive(!ftkModeActive)}
+                    style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        background: ftkModeActive ? '#ff5252' : '#424242',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                        width: '100%',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    {ftkModeActive ? 'ワンキル ON' : 'ワンキル OFF'}
+                </button>
 
                 <button
                     onClick={undo}
@@ -222,11 +259,7 @@ export function Board() {
                 cursor: (isTargeting || isSelectingZone) ? 'not-allowed' : 'pointer',
                 boxShadow: (isReplaying && activeEffectCardId && banished.includes(activeEffectCardId)) ? '0 0 15px 5px rgba(0, 255, 255, 0.8)' : 'none',
                 borderRadius: '8px',
-                transition: 'box-shadow 0.3s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-end',
-                gap: '4px'
+                transition: 'box-shadow 0.3s ease'
             }}
                 onClick={() => {
                     if (isTargeting || isSelectingZone) return;
@@ -236,26 +269,6 @@ export function Board() {
                     }, formatLog('ui_banished_zone'), banished);
                 }}
             >
-                {ftkModeActive && (
-                    <div style={{
-                        textAlign: 'center',
-                        background: '#1a1a1a',
-                        border: ftkVictory ? '1px solid #00ff00' : '1px solid #ff4444',
-                        color: ftkVictory ? '#00ff00' : '#ff4444',
-                        borderRadius: '4px',
-                        padding: '2px 4px',
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        boxShadow: ftkVictory ? '0 0 10px rgba(0,255,0,0.4)' : '0 0 8px rgba(255,68,68,0.3)',
-                        textShadow: ftkVictory ? '0 0 5px #00ff00' : 'none',
-                        userSelect: 'none',
-                        zIndex: 10
-                    }}>
-                        OPPONENT LP<br />
-                        <span style={{ fontSize: '12px' }}>{opponentLp}</span>
-                        {ftkVictory && <div style={{ fontSize: '9px', marginTop: '2px' }}>VICTORY!</div>}
-                    </div>
-                )}
                 <Zone id="banished-zone" type="BANISHED" label={formatLog('ui_banished')} bgLabel="除外">
                     {banished.length > 0 && renderCard(banished[banished.length - 1], false)}
                     {banished.length > 0 && <div style={{ position: 'absolute', top: -5, right: -5, background: 'blue', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white', zIndex: 10 }}>{banished.length}</div>}
