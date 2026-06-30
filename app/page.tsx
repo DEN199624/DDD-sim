@@ -138,6 +138,7 @@ export default function Home() {
     'DDヴァイス・テュポーン': 'テュポーン',
     'DDリビルド': 'リビルド',
     'DDD疾風大王エグゼクティブ・アレクサンダー': '大王アレクサンダー',
+    'ナイトメア・スローン': 'スローン',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -280,6 +281,10 @@ export default function Home() {
       // Explicit Swap: Zero King (c034) should be to the left of One for One (c036)
       if (a === 'c036' && idB === 'c034') return 1; // 036 comes after 034
       if (a === 'c034' && idB === 'c036') return -1;  // 034 comes before 036
+
+      // Ensure Nightmare Throne (c042) is to the immediate right of One for One (c036)
+      if (a === 'c036' && idB === 'c042') return -1;
+      if (a === 'c042' && idB === 'c036') return 1;
 
 
 

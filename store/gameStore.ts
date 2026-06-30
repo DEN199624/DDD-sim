@@ -395,6 +395,58 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
         // Executive Alexander shares the same SS trigger logic as Genghis
         EFFECT_LOGIC['c007'](store, selfId, fromLocation);
     },
+    'c042': (store, selfId, fromLocation) => {
+        if (store.fieldZone === selfId) {
+            // HOPT Check
+            if (store.turnEffectUsage['c042_opt']) return;
+
+            // Droll Check
+            if (useGameStore.getState().drollActive) {
+                store.addLog(formatLog('log_droll_blocked'));
+                return;
+            }
+
+            // Only trigger on manual activation (fromLocation is undefined) or initial activation from HAND
+            const isInitialActivation = !fromLocation || fromLocation === 'HAND';
+            if (!isInitialActivation) return;
+
+            store.startEffectSelection(
+                formatLog('prompt_throne_search'),
+                [
+                    { label: formatLog('label_throne_search'), value: 'search' },
+                    { label: formatLog('label_throne_destroy'), value: 'destroy' }
+                ],
+                (choice: string, isNegated?: boolean) => {
+                    store.addTurnEffectUsage('c042_opt');
+                    if (isNegated) return;
+
+                    if (choice === 'search') {
+                        store.startSearch(
+                            (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
+                            (selectedId: string) => {
+                                const cardName = getCardName(store.cards[selectedId], store.language);
+                                store.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                store.addLog(formatLog('log_c042_effect_search', { card: cardName }));
+                            },
+                            formatLog('prompt_throne_search_card')
+                        );
+                    } else if (choice === 'destroy') {
+                        store.startSearch(
+                            (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
+                            (selectedId: string) => {
+                                const cardName = getCardName(store.cards[selectedId], store.language);
+                                store.moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+                                store.addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
+                            },
+                            formatLog('prompt_throne_destroy_card')
+                        );
+                    }
+                },
+                true, // canAshBlossom
+                selfId
+            );
+        }
+    },
     'c008': (store, selfId, fromLocation) => {
         // Abyss Ragnarok
         const isMonster = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
@@ -3999,6 +4051,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                 newState.summonCount = (state.summonCount || 0) + 1;
                             }
                         }
+                        break;
+                    case 'FIELD_ZONE':
+                        if (state.fieldZone && state.fieldZone !== cardId) {
+                            newState.graveyard = [...newState.graveyard, state.fieldZone];
+                        }
+                        newState.fieldZone = cardId;
                         break;
                     // ... Handle others
                 }

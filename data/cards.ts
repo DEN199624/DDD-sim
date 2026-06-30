@@ -498,7 +498,15 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         descriptionJa: 'チューナー＋チューナー以外のモンスター１体以上\nこのカード名の(1)の効果は１ターンに１度しか使用できない。\n(1)：このカードがモンスターゾーンに存在し、自分フィールドにこのカード以外の「DD」モンスターが召喚・特殊召喚された場合、自分の墓地の「DD」モンスター１体を対象として発動できる。そのモンスターを特殊召喚する。',
         attack: 3000,
         defense: 2500,
-        level: 10,
-        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324230732.png'
+    },
+    'c042': {
+        cardId: 'c042',
+        name: 'Nightmare Throne',
+        nameJa: 'ナイトメア・スローン',
+        type: 'SPELL',
+        subType: 'FIELD',
+        description: 'Field Spell. [1] On activation: Add 1 Fiend monster with 0 ATK/DEF from Deck to Hand OR destroy it.',
+        descriptionJa: 'このカード名のカードは１ターンに１枚しか発動できない。\n(1)：このカードの発動時の効果処理として、デッキから攻撃力と守備力が０の悪魔族モンスター１体を選び、手札に加えるか破壊する。',
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260630/20260630082250.png'
     }
 };
