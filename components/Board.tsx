@@ -98,24 +98,6 @@ export function Board() {
                 )}
 
                 <button
-                    onClick={() => setFtkModeActive(!ftkModeActive)}
-                    style={{
-                        padding: '6px 12px',
-                        fontSize: '12px',
-                        background: ftkModeActive ? '#ff5252' : '#424242',
-                        color: 'white',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                        width: '100%',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    {ftkModeActive ? 'ワンキル ON' : 'ワンキル OFF'}
-                </button>
-
-                <button
                     onClick={undo}
                     style={{
                         padding: '6px 12px',

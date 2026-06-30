@@ -61,35 +61,32 @@ function runTests() {
     // Assert Throne is in FIELD_ZONE
     console.log("Throne is in FIELD_ZONE:", useGameStore.getState().fieldZone === throneId);
     
-    // Assert effect selection is open (automated trigger)
-    const currentStore = useGameStore.getState() as any;
-    console.log("Effect Selection Open:", currentStore.effectSelectionState?.isOpen || false);
+    // Assert Search state is open (first step)
+    const storeAfterPlay = useGameStore.getState();
+    console.log("Search screen open:", storeAfterPlay.searchState.isOpen);
     
-    // Access selection state
-    const selectionState = currentStore.effectSelectionState || {};
-    console.log("Selection Title:", selectionState.title);
-    console.log("Selection Options:", selectionState.options);
+    // Filter candidates manually using the search filter
+    const candidates = storeAfterPlay.deck.filter(id => {
+        const card = storeAfterPlay.cards[id];
+        return storeAfterPlay.searchState.filter ? storeAfterPlay.searchState.filter(card as any) : false;
+    });
+    console.log("Search Candidates in Deck:", candidates.map(id => storeAfterPlay.cards[id].name));
     
-    // 3. Select 'search' option
-    if (selectionState.onSelect) {
-        console.log("\nSelecting 'search' option...");
-        selectionState.onSelect('search');
-        
-        // Assert search screen is open
-        const storeAfterResolve = useGameStore.getState();
-        const searchState = storeAfterResolve.searchState;
-        console.log("Search screen open:", searchState.isOpen);
-        
-        // Filter candidates manually using the search filter
-        const candidates = storeAfterResolve.deck.filter(id => {
-            const card = storeAfterResolve.cards[id];
-            return searchState.filter ? searchState.filter(card as any) : false;
-        });
-        console.log("Search Candidates in Deck:", candidates.map(id => storeAfterResolve.cards[id].name));
-        
-        // Select Kepler ('c004') to add to Hand
-        const keplerId = candidates.find(id => storeAfterResolve.cards[id].cardId === 'c004')!;
-        storeAfterResolve.resolveSearch(keplerId);
+    // Select Kepler ('c004')
+    const keplerId = candidates.find(id => storeAfterPlay.cards[id].cardId === 'c004')!;
+    console.log("\nSelecting Kepler from deck...");
+    storeAfterPlay.resolveSearch(keplerId);
+    
+    // Assert Effect Selection is open (second step)
+    const storeAfterSelect = useGameStore.getState() as any;
+    console.log("Effect Selection Open:", storeAfterSelect.effectSelectionState?.isOpen || false);
+    console.log("Selection Title:", storeAfterSelect.effectSelectionState?.title);
+    console.log("Selection Options:", storeAfterSelect.effectSelectionState?.options);
+    
+    // Select 'search' (Add to hand) option
+    if (storeAfterSelect.effectSelectionState.onSelect) {
+        console.log("Selecting 'search' option...");
+        storeAfterSelect.effectSelectionState.onSelect('search');
         
         // Assert Kepler is in Hand
         console.log("Kepler in Hand:", useGameStore.getState().hand.includes(keplerId));
@@ -107,20 +104,19 @@ function runTests() {
     useGameStore.getState().moveCard(throneId2, 'HAND', undefined, undefined, false, false, undefined, true);
     useGameStore.getState().moveCard(throneId2, 'FIELD_ZONE', undefined, undefined, false, false, undefined, true);
     
-    const selectionState2 = (useGameStore.getState() as any).effectSelectionState || {};
-    if (selectionState2.onSelect) {
+    const storeAfterPlay2 = useGameStore.getState();
+    const candidates2 = storeAfterPlay2.deck.filter(id => {
+        const card = storeAfterPlay2.cards[id];
+        return storeAfterPlay2.searchState.filter ? storeAfterPlay2.searchState.filter(card as any) : false;
+    });
+    const copernicusId = candidates2.find(id => storeAfterPlay2.cards[id].cardId === 'c009')!;
+    console.log("Selecting Copernicus from deck...");
+    storeAfterPlay2.resolveSearch(copernicusId);
+    
+    const storeAfterSelect2 = useGameStore.getState() as any;
+    if (storeAfterSelect2.effectSelectionState.onSelect) {
         console.log("Selecting 'destroy' option...");
-        selectionState2.onSelect('destroy');
-        
-        // Select Copernicus ('c009') to destroy
-        const storeAfterResolve2 = useGameStore.getState();
-        const searchState2 = storeAfterResolve2.searchState;
-        const candidates2 = storeAfterResolve2.deck.filter(id => {
-            const card = storeAfterResolve2.cards[id];
-            return searchState2.filter ? searchState2.filter(card as any) : false;
-        });
-        const copernicusId = candidates2.find(id => storeAfterResolve2.cards[id].cardId === 'c009')!;
-        storeAfterResolve2.resolveSearch(copernicusId);
+        storeAfterSelect2.effectSelectionState.onSelect('destroy');
         
         // Assert Copernicus is in GY
         console.log("Copernicus in GY:", useGameStore.getState().graveyard.includes(copernicusId));
@@ -129,7 +125,7 @@ function runTests() {
         console.error("FAIL: Effect selection onSelect callback not found!");
     }
     
-    // Test Orthros Destroy
+    // Test Orthros Destroy Setup
     console.log("\n--- Testing Orthros P-Effect to Destroy Throne ---");
     // Draw Orthros to Hand
     const orthrosId = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c011')!;
@@ -152,9 +148,10 @@ function runOrthrosTest() {
     // 2. Play Throne to FIELD_ZONE
     const throneId = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c042')!;
     useGameStore.getState().moveCard(throneId, 'FIELD_ZONE', undefined, undefined, false, false, undefined, true);
-    // (Dismiss Throne prompt)
-    const selectionState = (useGameStore.getState() as any).effectSelectionState || {};
-    if (selectionState.onSelect) selectionState.onSelect('no'); // skip throne search
+    
+    // Cancel the search prompt (dismiss Throne effect)
+    console.log("Dismissing Throne search...");
+    useGameStore.getState().cancelSearch();
     
     // 3. Move Orthros to P-Zone (SpellTrap 0)
     const orthrosId = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c011')!;
@@ -179,7 +176,7 @@ function runOrthrosTest() {
         useGameStore.getState().resolveTarget(throneId);
         
         // Assert both are in GY
-        console.log("Kepler in GY:", useGameStore.getState().graveyard.includes(keplerId));
+        console.log("Kepler in GY (should be false since it goes to EX):", useGameStore.getState().graveyard.includes(keplerId));
         console.log("Throne in GY:", useGameStore.getState().graveyard.includes(throneId));
         console.log("Logs:", useGameStore.getState().logs[0]);
     }

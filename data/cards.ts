@@ -507,6 +507,6 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         subType: 'FIELD',
         description: 'Field Spell. [1] On activation: Add 1 Fiend monster with 0 ATK/DEF from Deck to Hand OR destroy it.',
         descriptionJa: 'このカード名のカードは１ターンに１枚しか発動できない。\n(1)：このカードの発動時の効果処理として、デッキから攻撃力と守備力が０の悪魔族モンスター１体を選び、手札に加えるか破壊する。',
-        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260630/20260630082250.png'
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250314/20250314230944.png'
     }
 };

@@ -410,40 +410,44 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
             const isInitialActivation = !fromLocation || fromLocation === 'HAND';
             if (!isInitialActivation) return;
 
-            store.startEffectSelection(
-                formatLog('prompt_throne_search'),
-                [
-                    { label: formatLog('label_throne_search'), value: 'search' },
-                    { label: formatLog('label_throne_destroy'), value: 'destroy' }
-                ],
-                (choice: string, isNegated?: boolean) => {
-                    store.addTurnEffectUsage('c042_opt');
-                    if (isNegated) return;
+            // Check if there are valid targets in the deck
+            const hasTarget = store.deck.some((id: string) => {
+                const c = store.cards[id];
+                return c && c.type === 'MONSTER' && (c.cardId === 'c004' || c.cardId === 'c009');
+            });
+            if (!hasTarget) return;
 
-                    if (choice === 'search') {
-                        store.startSearch(
-                            (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
-                            (selectedId: string) => {
-                                const cardName = getCardName(store.cards[selectedId], store.language);
+            // 1. Deck Search (Select card first)
+            store.startSearch(
+                (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
+                (selectedId: string) => {
+                    // Consumes HOPT since activation and targeting happened
+                    store.addTurnEffectUsage('c042_opt');
+
+                    // 2. Selection Prompt (Add to hand or destroy)
+                    store.startEffectSelection(
+                        formatLog('prompt_throne_search'),
+                        [
+                            { label: formatLog('label_throne_search'), value: 'search' },
+                            { label: formatLog('label_throne_destroy'), value: 'destroy' }
+                        ],
+                        (choice: string, isNegated?: boolean) => {
+                            if (isNegated) return;
+
+                            const cardName = getCardName(store.cards[selectedId], store.language);
+                            if (choice === 'search') {
                                 store.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
                                 store.addLog(formatLog('log_c042_effect_search', { card: cardName }));
-                            },
-                            formatLog('prompt_throne_search_card')
-                        );
-                    } else if (choice === 'destroy') {
-                        store.startSearch(
-                            (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
-                            (selectedId: string) => {
-                                const cardName = getCardName(store.cards[selectedId], store.language);
+                            } else if (choice === 'destroy') {
                                 store.moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
                                 store.addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
-                            },
-                            formatLog('prompt_throne_destroy_card')
-                        );
-                    }
+                            }
+                        },
+                        true, // canAshBlossom
+                        selfId
+                    );
                 },
-                true, // canAshBlossom
-                selfId
+                formatLog('prompt_throne_search_card')
             );
         }
     },
