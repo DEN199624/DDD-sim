@@ -340,9 +340,9 @@ export const LOCALE_JA: { [key: string]: string } = {
 
     'prompt_necro_slime_fusion': 'ネクロ・スライム：墓地融合？',
     'prompt_typhoon_fusion': 'テュポーン：墓地融合？',
-    'prompt_throne_search': 'ナイトメア・スローン：発動時の効果処理を選択してください。',
-    'label_throne_search': 'デッキから「ケプラー」か「コペルニクス」を1体手札に加える',
-    'label_throne_destroy': 'デッキから「ケプラー」か「コペルニクス」を1体破壊する',
+    'prompt_throne_search': '手札に加えるか破壊するかを選択してください',
+    'label_throne_search': '手札に加える',
+    'label_throne_destroy': '破壊する',
     'prompt_throne_search_card': '手札に加えるカードを選択してください。',
     'prompt_throne_destroy_card': '破壊するカードを選択してください。',
     'label_fusion_monster_select': '融合モンスターを選択してください',

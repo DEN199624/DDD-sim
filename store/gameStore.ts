@@ -447,7 +447,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                         selfId
                     );
                 },
-                formatLog('prompt_throne_search_card')
+                formatLog('prompt_select_card')
             );
         }
     },

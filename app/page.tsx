@@ -448,6 +448,14 @@ export default function Home() {
         return;
       }
 
+      // Rule: Block Nightmare Throne (c042) from being placed in Spell/Trap Zone
+      if (fromHand && store.cards[activeId]?.cardId === 'c042' && zoneType === 'SPELL_TRAP_ZONE') {
+        console.warn('Nightmare Throne cannot be placed in Spell/Trap Zone.');
+        setDragState(false, null);
+        setActiveCard(null);
+        return;
+      }
+
       // Rule: Block Hand to EMZ (Extra Deck monsters only)
       if (fromHand && zoneType === 'EXTRA_MONSTER_ZONE') {
         console.warn('Cannot Summon from Hand to EMZ.');
