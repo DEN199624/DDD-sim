@@ -257,6 +257,7 @@ export const LOCALE_JA: { [key: string]: string } = {
     'log_one_for_one_negated': '灰流うららでワン・フォー・ワンを無効（コスト・{cost}）',
     'log_c042_effect_search': '{card}をサーチ (スローン効果)',
     'log_c042_effect_destroy': '{card}をスローン効果で破壊して墓地に送る',
+    'log_c042_negated': '灰流うららでナイトメア・スローンを無効',
     'log_c043_effect_search': '{card}をサーチ (オカルティズム効果)',
     'log_c043_effect_salvage': '{card}を回収 (オカルティズム効果)',
     'log_c043_negated': '灰流うららでダーク・オカルティズムを無効（コスト・{cost}）',

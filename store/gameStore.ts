@@ -417,38 +417,55 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
             });
             if (!hasTarget) return;
 
-            // 1. Deck Search (Select card first)
-            store.startSearch(
-                (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
-                (selectedId: string) => {
-                    // Consumes HOPT since activation and targeting happened
+            // 1. Initial Prompt with Ash Blossom check
+            store.startEffectSelection(
+                store.language === 'ja' ? '「ナイトメア・スローン」の効果を発動しますか？' : 'Activate the effect of "Nightmare Throne"?',
+                [
+                    { label: store.language === 'ja' ? 'はい' : 'Yes', value: 'yes' },
+                    { label: store.language === 'ja' ? 'いいえ' : 'No', value: 'no' }
+                ],
+                (activationChoice: string, isNegated?: boolean) => {
+                    // Consumes HOPT since activation occurred
                     useGameStore.getState().addTurnEffectUsage('c042_opt');
 
-                    // 2. Selection Prompt (Add to hand or destroy)
-                    store.startEffectSelection(
-                        formatLog('prompt_throne_search'),
-                        [
-                            { label: formatLog('label_throne_search'), value: 'search' },
-                            { label: formatLog('label_throne_destroy'), value: 'destroy' }
-                        ],
-                        (choice: string, isNegated?: boolean) => {
-                            if (isNegated) return;
+                    if (isNegated) {
+                        useGameStore.getState().addLog(formatLog('log_c042_negated'));
+                        return;
+                    }
 
-                            const freshState = useGameStore.getState();
-                            const cardName = getCardName(freshState.cards[selectedId], freshState.language);
-                            if (choice === 'search') {
-                                useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
-                                useGameStore.getState().addLog(formatLog('log_c042_effect_search', { card: cardName }));
-                            } else if (choice === 'destroy') {
-                                useGameStore.getState().moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-                                useGameStore.getState().addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
-                            }
-                        },
-                        true, // canAshBlossom
-                        selfId
-                    );
+                    if (activationChoice === 'yes') {
+                        // 2. Deck Search (Select card)
+                        store.startSearch(
+                            (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
+                            (selectedId: string) => {
+                                // 3. Selection Prompt (Add to hand or destroy)
+                                store.startEffectSelection(
+                                    formatLog('prompt_throne_search'),
+                                    [
+                                        { label: formatLog('label_throne_search'), value: 'search' },
+                                        { label: formatLog('label_throne_destroy'), value: 'destroy' }
+                                    ],
+                                    (choice: string) => {
+                                        const freshState = useGameStore.getState();
+                                        const cardName = getCardName(freshState.cards[selectedId], freshState.language);
+                                        if (choice === 'search') {
+                                            useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                            useGameStore.getState().addLog(formatLog('log_c042_effect_search', { card: cardName }));
+                                        } else if (choice === 'destroy') {
+                                            useGameStore.getState().moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+                                            useGameStore.getState().addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
+                                        }
+                                    },
+                                    false, // No more Ash Blossom check in sub-choice
+                                    selfId
+                                );
+                            },
+                            formatLog('prompt_select_card')
+                        );
+                    }
                 },
-                formatLog('prompt_select_card')
+                true, // canAshBlossom (Triggers Ash Blossom on initial activation!)
+                selfId
             );
         }
     },

@@ -61,27 +61,35 @@ function runTests() {
     // Assert Throne is in FIELD_ZONE
     console.log("Throne is in FIELD_ZONE:", useGameStore.getState().fieldZone === throneId);
     
-    // Assert Search state is open (first step)
-    const storeAfterPlay = useGameStore.getState();
-    console.log("Search screen open:", storeAfterPlay.searchState.isOpen);
+    // Assert Initial Activation prompt is open (for Ash Blossom check)
+    const storeAfterPlay = useGameStore.getState() as any;
+    console.log("Initial Prompt Open:", storeAfterPlay.effectSelectionState?.isOpen || false);
+    console.log("Initial Title:", storeAfterPlay.effectSelectionState?.title);
+    
+    // Select 'yes' (to activate search)
+    console.log("Selecting 'yes' to activate effect...");
+    storeAfterPlay.effectSelectionState.onSelect('yes');
+    
+    // Assert Search state is open
+    const storeAfterYes = useGameStore.getState();
+    console.log("Search screen open:", storeAfterYes.searchState.isOpen);
     
     // Filter candidates manually using the search filter
-    const candidates = storeAfterPlay.deck.filter(id => {
-        const card = storeAfterPlay.cards[id];
-        return storeAfterPlay.searchState.filter ? storeAfterPlay.searchState.filter(card as any) : false;
+    const candidates = storeAfterYes.deck.filter(id => {
+        const card = storeAfterYes.cards[id];
+        return storeAfterYes.searchState.filter ? storeAfterYes.searchState.filter(card as any) : false;
     });
-    console.log("Search Candidates in Deck:", candidates.map(id => storeAfterPlay.cards[id].name));
+    console.log("Search Candidates in Deck:", candidates.map(id => storeAfterYes.cards[id].name));
     
     // Select Kepler ('c004')
-    const keplerId = candidates.find(id => storeAfterPlay.cards[id].cardId === 'c004')!;
-    console.log("\nSelecting Kepler from deck...");
-    storeAfterPlay.resolveSearch(keplerId);
+    const keplerId = candidates.find(id => storeAfterYes.cards[id].cardId === 'c004')!;
+    console.log("Selecting Kepler from deck...");
+    storeAfterYes.resolveSearch(keplerId);
     
-    // Assert Effect Selection is open (second step)
+    // Assert Choice Prompt is open (Add to hand or destroy)
     const storeAfterSelect = useGameStore.getState() as any;
-    console.log("Effect Selection Open:", storeAfterSelect.effectSelectionState?.isOpen || false);
-    console.log("Selection Title:", storeAfterSelect.effectSelectionState?.title);
-    console.log("Selection Options:", storeAfterSelect.effectSelectionState?.options);
+    console.log("Choice Prompt Open:", storeAfterSelect.effectSelectionState?.isOpen || false);
+    console.log("Choice Title:", storeAfterSelect.effectSelectionState?.title);
     
     // Select 'search' (Add to hand) option
     if (storeAfterSelect.effectSelectionState.onSelect) {
@@ -103,6 +111,9 @@ function runTests() {
     const throneId2 = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c042')!;
     useGameStore.getState().moveCard(throneId2, 'HAND', undefined, undefined, false, false, undefined, true);
     useGameStore.getState().moveCard(throneId2, 'FIELD_ZONE', undefined, undefined, false, false, undefined, true);
+    
+    // Select 'yes' on initial prompt
+    (useGameStore.getState() as any).effectSelectionState.onSelect('yes');
     
     const storeAfterPlay2 = useGameStore.getState();
     const candidates2 = storeAfterPlay2.deck.filter(id => {
@@ -149,9 +160,9 @@ function runOrthrosTest() {
     const throneId = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c042')!;
     useGameStore.getState().moveCard(throneId, 'FIELD_ZONE', undefined, undefined, false, false, undefined, true);
     
-    // Cancel the search prompt (dismiss Throne effect)
-    console.log("Dismissing Throne search...");
-    useGameStore.getState().cancelSearch();
+    // Cancel the initial prompt (dismiss Throne effect)
+    console.log("Dismissing Throne activation...");
+    (useGameStore.getState() as any).effectSelectionState.onSelect('no');
     
     // 3. Move Orthros to P-Zone (SpellTrap 0)
     const orthrosId = useGameStore.getState().deck.find(id => useGameStore.getState().cards[id].cardId === 'c011')!;
