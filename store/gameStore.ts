@@ -422,7 +422,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                 (card: any) => card.type === 'MONSTER' && (card.cardId === 'c004' || card.cardId === 'c009'),
                 (selectedId: string) => {
                     // Consumes HOPT since activation and targeting happened
-                    store.addTurnEffectUsage('c042_opt');
+                    useGameStore.getState().addTurnEffectUsage('c042_opt');
 
                     // 2. Selection Prompt (Add to hand or destroy)
                     store.startEffectSelection(
@@ -434,13 +434,14 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                         (choice: string, isNegated?: boolean) => {
                             if (isNegated) return;
 
-                            const cardName = getCardName(store.cards[selectedId], store.language);
+                            const freshState = useGameStore.getState();
+                            const cardName = getCardName(freshState.cards[selectedId], freshState.language);
                             if (choice === 'search') {
-                                store.moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
-                                store.addLog(formatLog('log_c042_effect_search', { card: cardName }));
+                                useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                useGameStore.getState().addLog(formatLog('log_c042_effect_search', { card: cardName }));
                             } else if (choice === 'destroy') {
-                                store.moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-                                store.addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
+                                useGameStore.getState().moveCard(selectedId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+                                useGameStore.getState().addLog(formatLog('log_c042_effect_destroy', { card: cardName }));
                             }
                         },
                         true, // canAshBlossom
@@ -448,6 +449,96 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                     );
                 },
                 formatLog('prompt_select_card')
+            );
+        }
+    },
+    'c043': (store, selfId, fromLocation) => {
+        if (store.spellTrapZones.includes(selfId)) {
+            // HOPT Check
+            if (store.turnEffectUsage['c043_opt']) return;
+
+            // Only trigger on manual activation (fromLocation is undefined) or initial activation from HAND
+            const isInitialActivation = !fromLocation || fromLocation === 'HAND';
+            if (!isInitialActivation) return;
+
+            // Check if we have cost
+            const validCostIds = store.hand.filter((id: string) => id !== selfId);
+            if (validCostIds.length === 0) return;
+
+            // 1. Select card from Hand as cost
+            store.startSearch(
+                (card: any) => true,
+                (costId: string) => {
+                    const freshState1 = useGameStore.getState();
+                    const costCard = freshState1.cards[costId];
+                    const costCardName = getCardName(costCard, freshState1.language);
+
+                    // Pay cost (move to GY)
+                    useGameStore.getState().moveCard(costId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+                    useGameStore.getState().addLog(formatLog('log_c043_cost', { card: costCardName }));
+
+                    // Check if we have targets in GY
+                    const level8Ids = ['c008', 'c010', 'c012', 'c030'];
+                    const freshState2 = useGameStore.getState();
+                    const hasGraveTarget = freshState2.graveyard.some((id: string) => {
+                        const c = freshState2.cards[id];
+                        return c && level8Ids.includes(c.cardId);
+                    });
+
+                    // Build options
+                    const options = [
+                        { label: formatLog('label_occultism_deck'), value: 'deck' }
+                    ];
+                    if (hasGraveTarget) {
+                        options.push({ label: formatLog('label_occultism_gy'), value: 'gy' });
+                    }
+
+                    // 2. Select effect and check Ash Blossom
+                    store.startEffectSelection(
+                        formatLog('prompt_occultism_choice'),
+                        options,
+                        (choice: string, isNegated?: boolean) => {
+                            // Consume HOPT
+                            useGameStore.getState().addTurnEffectUsage('c043_opt');
+
+                            if (isNegated) {
+                                useGameStore.getState().addLog(formatLog('log_c043_negated', { cost: costCardName }));
+                                return;
+                            }
+
+                            if (choice === 'deck') {
+                                // Search from Deck
+                                store.startSearch(
+                                    (card: any) => card.type === 'MONSTER' && card.level === 8 && level8Ids.includes(card.cardId),
+                                    (selectedId: string) => {
+                                        const freshState3 = useGameStore.getState();
+                                        const cardName = getCardName(freshState3.cards[selectedId], freshState3.language);
+                                        useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                        useGameStore.getState().addLog(formatLog('log_c043_effect_search', { card: cardName }));
+                                    },
+                                    formatLog('prompt_occultism_select_deck')
+                                );
+                            } else if (choice === 'gy') {
+                                // Salvage from GY
+                                store.startSearch(
+                                    (card: any) => card.type === 'MONSTER' && card.level === 8 && level8Ids.includes(card.cardId),
+                                    (selectedId: string) => {
+                                        const freshState4 = useGameStore.getState();
+                                        const cardName = getCardName(freshState4.cards[selectedId], freshState4.language);
+                                        useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                        useGameStore.getState().addLog(formatLog('log_c043_effect_salvage', { card: cardName }));
+                                    },
+                                    formatLog('prompt_occultism_select_gy'),
+                                    useGameStore.getState().graveyard
+                                );
+                            }
+                        },
+                        true, // canAshBlossom
+                        selfId
+                    );
+                },
+                formatLog('prompt_occultism_cost'),
+                validCostIds
             );
         }
     },

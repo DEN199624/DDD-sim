@@ -139,6 +139,7 @@ export default function Home() {
     'DDリビルド': 'リビルド',
     'DDD疾風大王エグゼクティブ・アレクサンダー': '大王アレクサンダー',
     'ナイトメア・スローン': 'スローン',
+    'ダーク・オカルティズム': 'オカルティズム',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -285,6 +286,10 @@ export default function Home() {
       // Ensure Nightmare Throne (c042) is to the immediate right of One for One (c036)
       if (a === 'c036' && idB === 'c042') return -1;
       if (a === 'c042' && idB === 'c036') return 1;
+
+      // Ensure Dark Occultism (c043) is to the immediate right of Nightmare Throne (c042)
+      if (a === 'c042' && idB === 'c043') return -1;
+      if (a === 'c043' && idB === 'c042') return 1;
 
 
 
@@ -454,6 +459,18 @@ export default function Home() {
         setDragState(false, null);
         setActiveCard(null);
         return;
+      }
+
+      // Rule: Block Dark Occultism (c043) placement if no other card in hand to discard
+      if (fromHand && store.cards[activeId]?.cardId === 'c043' && zoneType === 'SPELL_TRAP_ZONE') {
+        const hasCost = store.hand.some((id: string) => id !== activeId);
+        if (!hasCost) {
+          console.warn('Dark Occultism requires another card in hand to discard.');
+          store.addLog(store.language === 'ja' ? 'コストとなる手札が足りません。' : 'Insufficient hand cost.');
+          setDragState(false, null);
+          setActiveCard(null);
+          return;
+        }
       }
 
       // Rule: Block Hand to EMZ (Extra Deck monsters only)
