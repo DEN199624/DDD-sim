@@ -517,6 +517,6 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         subType: 'NORMAL',
         description: 'Normal Spell. Send 1 card from Hand to GY; add 1 Level 8 Fiend monster from Deck or GY to Hand.',
         descriptionJa: 'このカード名のカードは１ターンに１枚しか発動できない。\n(1)：手札を１枚捨てて発動できる。自分のデッキ・墓地からレベル８の悪魔族モンスター１体を選んで手札に加える。',
-        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250314/20250314230944.png'
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260701/20260701222915.png'
     }
 };
