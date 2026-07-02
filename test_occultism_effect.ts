@@ -94,6 +94,7 @@ function runTests() {
     
     // Verify Ragnarok in Hand and log
     console.log("Ragnarok in Hand:", useGameStore.getState().hand.includes(ragnarokId));
+    console.log("Occultism in GY:", useGameStore.getState().graveyard.includes(occultismId));
     console.log("Latest Log:", useGameStore.getState().logs[0]);
 
     // === Case 2: Salvage from GY ===
@@ -140,6 +141,7 @@ function runTests() {
     
     // Verify Thomas in Hand and recovery log
     console.log("Thomas in Hand:", useGameStore.getState().hand.includes(thomasId));
+    console.log("Occultism in GY:", useGameStore.getState().graveyard.includes(occultismId2));
     console.log("Latest Log:", useGameStore.getState().logs[0]);
 
     // === Case 3: Ash Blossom Negation ===
@@ -167,6 +169,7 @@ function runTests() {
     console.log("HOPT c043_opt consumed:", !!useGameStore.getState().turnEffectUsage['c043_opt']);
     console.log("Latest Log:", useGameStore.getState().logs[0]);
     console.log("Occultism Search Open (should be false):", useGameStore.getState().searchState.isOpen);
+    console.log("Occultism in GY (should be true even when negated):", useGameStore.getState().graveyard.includes(occultismId3));
 }
 
 try {

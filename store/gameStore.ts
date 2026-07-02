@@ -519,6 +519,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                             useGameStore.getState().addTurnEffectUsage('c043_opt');
 
                             if (isNegated) {
+                                useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
                                 useGameStore.getState().addLog(formatLog('log_c043_negated', { cost: costCardName }));
                                 return;
                             }
@@ -531,6 +532,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                         const freshState3 = useGameStore.getState();
                                         const cardName = getCardName(freshState3.cards[selectedId], freshState3.language);
                                         useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                        useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
                                         useGameStore.getState().addLog(formatLog('log_c043_effect_search', { card: cardName }));
                                     },
                                     formatLog('prompt_occultism_select_deck')
@@ -543,6 +545,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                         const freshState4 = useGameStore.getState();
                                         const cardName = getCardName(freshState4.cards[selectedId], freshState4.language);
                                         useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
+                                        useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
                                         useGameStore.getState().addLog(formatLog('log_c043_effect_salvage', { card: cardName }));
                                     },
                                     formatLog('prompt_occultism_select_gy'),
