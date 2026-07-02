@@ -88,6 +88,33 @@ export function DeckArea() {
   const isTargeting = targetingState.isOpen;
   const isSelectingZone = zoneSelectionState.isOpen;
 
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [scrollPercent, setScrollPercent] = useState(0);
+
+  // Sync slider on scroll
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll > 0) {
+        setScrollPercent((scrollLeft / maxScroll) * 100);
+      } else {
+        setScrollPercent(0);
+      }
+    }
+  };
+
+  // Sync scroll on slider drag
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setScrollPercent(val);
+    if (scrollRef.current) {
+      const { scrollWidth, clientWidth } = scrollRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      scrollRef.current.scrollLeft = (val / 100) * maxScroll;
+    }
+  };
+
   const handleDraw = () => {
     if (isTargeting || isSelectingZone) return;
     drawCard();
@@ -202,18 +229,22 @@ export function DeckArea() {
 
       <div data-zone-id="DECK">
       <Zone id="deck-zone" type="DECK" label={formatLog('ui_main_deck_area')} style={{ width: '100%', height: 'auto', minHeight: '140px', margin: 0 }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          minHeight: '140px',
-          maxHeight: '180px',
-          overflowX: 'auto',
-          padding: '20px 40px', // Extra horizontal padding for overlapping edges
-          width: '100%',
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#ed6c02 transparent'
-        }}>
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            minHeight: '140px',
+            maxHeight: '180px',
+            overflowX: 'auto',
+            padding: '20px 40px', // Extra horizontal padding for overlapping edges
+            width: '100%',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#ed6c02 transparent'
+          }}
+        >
           <SortableContext items={deck} strategy={horizontalListSortingStrategy}>
             {deck.map((id, index) => (
               <SortableCard
@@ -256,6 +287,38 @@ export function DeckArea() {
             </div>
           )}
         </div>
+
+        {/* Horizontal Seek Bar Slider Control */}
+        {deck.length > 0 && (
+          <div style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '0 40px 15px 40px',
+            marginTop: '-5px',
+            gap: '12px'
+          }}>
+            <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>◀</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={scrollPercent}
+              onChange={handleSliderChange}
+              style={{
+                flex: 1,
+                height: '6px',
+                background: '#222',
+                outline: 'none',
+                borderRadius: '3px',
+                accentColor: '#ed6c02',
+                cursor: 'pointer'
+              }}
+            />
+            <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>▶</span>
+          </div>
+        )}
       </Zone>
       </div>
 
