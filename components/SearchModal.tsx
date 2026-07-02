@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { Card } from './Card';
 import { formatLog } from '@/data/locales';
@@ -6,6 +6,14 @@ import { formatLog } from '@/data/locales';
 export function SearchModal() {
     const { searchState, resolveSearch, cancelSearch, deck, cards } = useGameStore();
     const { isOpen: isSearching, filter: searchFilter, prompt: searchPrompt, source: searchSource } = searchState;
+    const [isMinimized, setIsMinimized] = useState(false);
+
+    // Reset minimized state when modal is closed / reopened
+    useEffect(() => {
+        if (!isSearching) {
+            setIsMinimized(false);
+        }
+    }, [isSearching]);
 
     if (!isSearching) return null;
 
@@ -15,6 +23,61 @@ export function SearchModal() {
         const card = cards[id];
         return card && (!searchFilter || searchFilter(card));
     });
+
+    if (isMinimized) {
+        // Floating Mini Bar/Badge on the bottom-right corner for mobile friendliness
+        return (
+            <div style={{
+                position: 'fixed',
+                bottom: '100px', // place above hand/controls
+                right: '20px',
+                zIndex: 2100,
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center'
+            }}>
+                <button 
+                    onClick={() => setIsMinimized(false)}
+                    style={{
+                        padding: '12px 18px',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '30px',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}
+                >
+                    <span>🔍</span> {searchPrompt ? (searchPrompt.length > 12 ? searchPrompt.slice(0, 12) + '...' : searchPrompt) : formatLog('ui_select_card_add')} ({validTargets.length})
+                </button>
+                <button 
+                    onClick={cancelSearch}
+                    style={{
+                        width: '40px',
+                        height: '40px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    ✕
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div style={{
@@ -30,7 +93,28 @@ export function SearchModal() {
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            <div style={{ marginBottom: '20px', color: '#fff', fontSize: '20px' }}>
+            {/* Minimizer Toggle Button on top-right of screen */}
+            <button 
+                onClick={() => setIsMinimized(true)}
+                style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    padding: '8px 16px',
+                    background: '#4b5563',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                }}
+            >
+                🗕 盤面を確認 (縮小)
+            </button>
+
+            <div style={{ marginBottom: '20px', color: '#fff', fontSize: '20px', textAlign: 'center', padding: '0 10px' }}>
                 {searchPrompt || formatLog('ui_select_card_add')}
             </div>
 
@@ -41,7 +125,7 @@ export function SearchModal() {
                 maxWidth: '900px',
                 justifyContent: 'center',
                 overflowY: 'auto',
-                maxHeight: '80vh',
+                maxHeight: '70vh',
                 padding: '20px',
                 border: '1px solid #444',
                 borderRadius: '8px',

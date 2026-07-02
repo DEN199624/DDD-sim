@@ -1,13 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 
 export function EffectSelectionModal() {
     const { effectSelectionState, resolveEffectSelection } = useGameStore();
     const { isOpen: isChoosingEffect, title: effectPrompt, options: effectOptions } = effectSelectionState;
+    const [isMinimized, setIsMinimized] = useState(false);
+
+    // Reset minimized state when modal is closed / reopened
+    useEffect(() => {
+        if (!isChoosingEffect) {
+            setIsMinimized(false);
+        }
+    }, [isChoosingEffect]);
 
     if (!isChoosingEffect) return null;
 
     const hasImages = effectOptions.some(opt => opt.imageUrl);
+
+    if (isMinimized) {
+        // Floating Mini Bar/Badge on the bottom-right corner (placed higher than search bar)
+        return (
+            <div style={{
+                position: 'fixed',
+                bottom: '160px', // place above search bar (100px)
+                right: '20px',
+                zIndex: 2100,
+            }}>
+                <button 
+                    onClick={() => setIsMinimized(false)}
+                    style={{
+                        padding: '12px 18px',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '30px',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}
+                >
+                    <span>⚡</span> {effectPrompt ? (effectPrompt.length > 12 ? effectPrompt.slice(0, 12) + '...' : effectPrompt) : '効果を選択'}
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div style={{
@@ -24,6 +64,27 @@ export function EffectSelectionModal() {
             alignItems: 'center',
             justifyContent: 'center'
         }}>
+            {/* Minimizer Toggle Button on top-right of screen */}
+            <button 
+                onClick={() => setIsMinimized(true)}
+                style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    padding: '8px 16px',
+                    background: '#4b5563',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                }}
+            >
+                🗕 盤面を確認 (縮小)
+            </button>
+
             <div style={{
                 background: 'linear-gradient(135deg, #1e1e2e 0%, #11111b 100%)',
                 padding: '20px',
@@ -33,7 +94,7 @@ export function EffectSelectionModal() {
                 textAlign: 'center',
                 maxWidth: hasImages ? '600px' : '350px',
                 width: '90%',
-                maxHeight: '80vh',
+                maxHeight: '70vh',
                 overflowY: 'auto'
             }}>
                 <h3 style={{
