@@ -2995,6 +2995,8 @@ interface GameStore extends GameState {
     language: 'en' | 'ja';
     toggleLanguage: () => void;
     setLanguage: (lang: 'en' | 'ja') => void;
+    dialogSize: 'small' | 'medium' | 'large';
+    setDialogSize: (size: 'small' | 'medium' | 'large') => void;
 
     // Setters for new features
     setUseGradient: (use: boolean) => void;
@@ -3044,6 +3046,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     ftkModeActive: false,
     opponentLp: 8000,
     ftkVictory: false,
+    dialogSize: 'medium',
 
     // Simulation & Handtraps
     ashBlossomUsed: false,
@@ -3080,6 +3083,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         opponentLp: 8000,
         ftkVictory: false
     }),
+    setDialogSize: (size) => set({ dialogSize: size }),
 
     activateNibiru: () => {
         const state = get();

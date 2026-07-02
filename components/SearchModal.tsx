@@ -4,7 +4,7 @@ import { Card } from './Card';
 import { formatLog } from '@/data/locales';
 
 export function SearchModal() {
-    const { searchState, resolveSearch, cancelSearch, deck, cards } = useGameStore();
+    const { searchState, resolveSearch, cancelSearch, deck, cards, dialogSize, setDialogSize } = useGameStore();
     const { isOpen: isSearching, filter: searchFilter, prompt: searchPrompt, source: searchSource } = searchState;
     const [isMinimized, setIsMinimized] = useState(false);
 
@@ -79,6 +79,27 @@ export function SearchModal() {
         );
     }
 
+    // Determine dimensions based on dialogSize setting
+    let modalWidth = '80%';
+    let modalMinWidth = '340px';
+    let contentMaxHeight = '70vh';
+    let cardWrapperPadding = '20px';
+    let cardScale = 1.0;
+
+    if (dialogSize === 'small') {
+        modalWidth = '60%';
+        modalMinWidth = '290px';
+        contentMaxHeight = '48vh';
+        cardWrapperPadding = '10px';
+        cardScale = 0.85;
+    } else if (dialogSize === 'large') {
+        modalWidth = '95%';
+        modalMinWidth = '360px';
+        contentMaxHeight = '82vh';
+        cardWrapperPadding = '25px';
+        cardScale = 1.1;
+    }
+
     return (
         <div style={{
             position: 'fixed',
@@ -86,35 +107,72 @@ export function SearchModal() {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)',
+            backgroundColor: 'rgba(0,0,0,0.8)',
             zIndex: 2000,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            {/* Minimizer Toggle Button on top-right of screen */}
-            <button 
-                onClick={() => setIsMinimized(true)}
-                style={{
-                    position: 'absolute',
-                    top: '20px',
-                    right: '20px',
-                    padding: '8px 16px',
-                    background: '#4b5563',
-                    color: 'white',
-                    border: 'none',
+            {/* Top Bar Controls */}
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center',
+                zIndex: 2010
+            }}>
+                {/* Size Swapper */}
+                <div style={{
+                    display: 'flex',
+                    background: '#1e1e2f',
+                    padding: '2px',
                     borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
-                }}
-            >
-                🗕 盤面を確認 (縮小)
-            </button>
+                    border: '1px solid #444'
+                }}>
+                    {(['small', 'medium', 'large'] as const).map((sz) => (
+                        <button
+                            key={sz}
+                            onClick={() => setDialogSize(sz)}
+                            style={{
+                                padding: '6px 12px',
+                                background: dialogSize === sz ? '#3b82f6' : 'transparent',
+                                color: dialogSize === sz ? 'white' : '#aaa',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {sz === 'small' ? '小' : sz === 'medium' ? '中' : '大'}
+                        </button>
+                    ))}
+                </div>
 
-            <div style={{ marginBottom: '20px', color: '#fff', fontSize: '20px', textAlign: 'center', padding: '0 10px' }}>
+                {/* Minimizer Toggle Button */}
+                <button 
+                    onClick={() => setIsMinimized(true)}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#4b5563',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
+                >
+                    🗕 盤面を確認
+                </button>
+            </div>
+
+            <div style={{ marginBottom: '20px', color: '#fff', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', padding: '0 10px', maxWidth: modalWidth }}>
                 {searchPrompt || formatLog('ui_select_card_add')}
             </div>
 
@@ -122,17 +180,21 @@ export function SearchModal() {
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '15px',
+                width: modalWidth,
+                minWidth: modalMinWidth,
                 maxWidth: '900px',
                 justifyContent: 'center',
                 overflowY: 'auto',
-                maxHeight: '70vh',
-                padding: '20px',
+                maxHeight: contentMaxHeight,
+                padding: cardWrapperPadding,
                 border: '1px solid #444',
-                borderRadius: '8px',
-                background: 'rgba(20,20,20,0.9)'
+                borderRadius: '12px',
+                background: 'rgba(15,15,20,0.92)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                transition: 'all 0.3s ease-in-out'
             }}>
                 {validTargets.length === 0 ? (
-                    <div style={{ color: '#aaa' }}>{formatLog('ui_no_candidates')}</div>
+                    <div style={{ color: '#aaa', padding: '20px' }}>{formatLog('ui_no_candidates')}</div>
                 ) : (
                     validTargets.map((id) => {
                         // Determine Location
@@ -148,14 +210,14 @@ export function SearchModal() {
                         else if (s.deck.includes(id)) { loc = formatLog('ui_location_deck'); color = '#FFC107'; }
 
                         return (
-                            <div key={id} onClick={() => resolveSearch(id)} style={{ cursor: 'pointer', transition: 'transform 0.2s', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div key={id} onClick={() => resolveSearch(id)} style={{ cursor: 'pointer', transition: 'transform 0.2s', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', transform: `scale(${cardScale})` }}>
                                 <div style={{
                                     marginBottom: '4px',
                                     padding: '2px 6px',
                                     background: color,
                                     color: 'white',
                                     borderRadius: '4px',
-                                    fontSize: '12px',
+                                    fontSize: '10px',
                                     fontWeight: 'bold',
                                     textShadow: '0 1px 2px black'
                                 }}>
@@ -168,7 +230,7 @@ export function SearchModal() {
                 )}
             </div>
 
-            <button onClick={cancelSearch} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer', background: '#d32f2f', color: 'white', border: 'none', borderRadius: '4px', fontSize: '16px' }}>
+            <button onClick={cancelSearch} style={{ marginTop: '20px', padding: '8px 24px', cursor: 'pointer', background: '#d32f2f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '15px', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.2)' }}>
                 {formatLog('ui_cancel')}
             </button>
         </div>

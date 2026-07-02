@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 
 export function EffectSelectionModal() {
-    const { effectSelectionState, resolveEffectSelection } = useGameStore();
+    const { effectSelectionState, resolveEffectSelection, dialogSize, setDialogSize } = useGameStore();
     const { isOpen: isChoosingEffect, title: effectPrompt, options: effectOptions } = effectSelectionState;
     const [isMinimized, setIsMinimized] = useState(false);
 
@@ -49,6 +49,30 @@ export function EffectSelectionModal() {
         );
     }
 
+    // Determine dimensions based on dialogSize setting
+    let modalWidth = '90%';
+    let modalMaxWidth = hasImages ? '600px' : '350px';
+    let contentMaxHeight = '70vh';
+    let paddingSize = '20px';
+    let buttonPadding = '10px 15px';
+    let fontSize = '14px';
+
+    if (dialogSize === 'small') {
+        modalWidth = '65%';
+        modalMaxWidth = hasImages ? '420px' : '260px';
+        contentMaxHeight = '48vh';
+        paddingSize = '12px';
+        buttonPadding = '6px 10px';
+        fontSize = '12px';
+    } else if (dialogSize === 'large') {
+        modalWidth = '95%';
+        modalMaxWidth = hasImages ? '750px' : '450px';
+        contentMaxHeight = '82vh';
+        paddingSize = '28px';
+        buttonPadding = '14px 20px';
+        fontSize = '16px';
+    }
+
     return (
         <div style={{
             position: 'fixed',
@@ -64,45 +88,84 @@ export function EffectSelectionModal() {
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            {/* Minimizer Toggle Button on top-right of screen */}
-            <button 
-                onClick={() => setIsMinimized(true)}
-                style={{
-                    position: 'absolute',
-                    top: '20px',
-                    right: '20px',
-                    padding: '8px 16px',
-                    background: '#4b5563',
-                    color: 'white',
-                    border: 'none',
+            {/* Top Bar Controls */}
+            <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center',
+                zIndex: 2010
+            }}>
+                {/* Size Swapper */}
+                <div style={{
+                    display: 'flex',
+                    background: '#1e1e2f',
+                    padding: '2px',
                     borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
-                }}
-            >
-                🗕 盤面を確認 (縮小)
-            </button>
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                    {(['small', 'medium', 'large'] as const).map((sz) => (
+                        <button
+                            key={sz}
+                            onClick={() => setDialogSize(sz)}
+                            style={{
+                                padding: '6px 12px',
+                                background: dialogSize === sz ? '#10b981' : 'transparent',
+                                color: dialogSize === sz ? 'white' : '#aaa',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {sz === 'small' ? '小' : sz === 'medium' ? '中' : '大'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Minimizer Toggle Button */}
+                <button 
+                    onClick={() => setIsMinimized(true)}
+                    style={{
+                        padding: '8px 16px',
+                        background: '#4b5563',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                    }}
+                >
+                    🗕 盤面を確認
+                </button>
+            </div>
 
             <div style={{
                 background: 'linear-gradient(135deg, #1e1e2e 0%, #11111b 100%)',
-                padding: '20px',
+                padding: paddingSize,
                 borderRadius: '16px',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
                 textAlign: 'center',
-                maxWidth: hasImages ? '600px' : '350px',
-                width: '90%',
-                maxHeight: '70vh',
-                overflowY: 'auto'
+                maxWidth: modalMaxWidth,
+                width: modalWidth,
+                maxHeight: contentMaxHeight,
+                overflowY: 'auto',
+                transition: 'all 0.3s ease-in-out'
             }}>
                 <h3 style={{
                     marginBottom: '15px',
                     color: '#fff',
                     fontSize: '16px',
                     fontWeight: 'bold',
-                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    paddingTop: '10px'
                 }}>{effectPrompt}</h3>
 
                 <div style={{
@@ -120,13 +183,13 @@ export function EffectSelectionModal() {
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: '10px',
-                                padding: opt.imageUrl ? '10px' : '10px 15px',
+                                padding: opt.imageUrl ? '10px' : buttonPadding,
                                 background: 'rgba(255, 255, 255, 0.05)',
                                 color: 'white',
                                 border: '1px solid rgba(255, 255, 255, 0.1)',
                                 borderRadius: '12px',
                                 cursor: 'pointer',
-                                fontSize: '14px',
+                                fontSize: fontSize,
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 textAlign: opt.imageUrl ? 'center' : 'left',
                                 position: 'relative',
@@ -134,9 +197,9 @@ export function EffectSelectionModal() {
                             }}
                             onMouseOver={(e) => {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                e.currentTarget.style.borderColor = '#3b82f6';
+                                e.currentTarget.style.borderColor = '#10b981';
                                 e.currentTarget.style.transform = 'translateY(-3px)';
-                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(59, 130, 246, 0.3)';
+                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(16, 185, 129, 0.3)';
                             }}
                             onMouseOut={(e) => {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
