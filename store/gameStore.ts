@@ -492,7 +492,6 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
 
                     // Pay cost (move to GY)
                     useGameStore.getState().moveCard(costId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-                    useGameStore.getState().addLog(formatLog('log_c043_cost', { card: costCardName }));
 
                     // Check if we have targets in GY
                     const level8Ids = ['c008', 'c010', 'c012', 'c030'];
@@ -518,6 +517,15 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                             // Consume HOPT
                             useGameStore.getState().addTurnEffectUsage('c043_opt');
 
+                            // Retrospectively remove the 'Place' and 'Ash' logs to keep history clean
+                            useGameStore.setState(s => {
+                                const ashLog = formatLog('log_ash_blossom_negated');
+                                const cardName = getCardName(s.cards[selfId], s.language);
+                                return {
+                                    logs: s.logs.filter(l => !(l.includes(cardName) && l.includes('置く')) && l !== ashLog)
+                                };
+                            });
+
                             if (isNegated) {
                                 useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
                                 useGameStore.getState().addLog(formatLog('log_c043_negated', { cost: costCardName }));
@@ -533,7 +541,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                         const cardName = getCardName(freshState3.cards[selectedId], freshState3.language);
                                         useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
                                         useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-                                        useGameStore.getState().addLog(formatLog('log_c043_effect_search', { card: cardName }));
+                                        useGameStore.getState().addLog(formatLog('log_c043_effect_search', { card: cardName, cost: costCardName }));
                                     },
                                     formatLog('prompt_occultism_select_deck')
                                 );
@@ -546,7 +554,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                         const cardName = getCardName(freshState4.cards[selectedId], freshState4.language);
                                         useGameStore.getState().moveCard(selectedId, 'HAND', undefined, undefined, false, false, undefined, true);
                                         useGameStore.getState().moveCard(selfId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-                                        useGameStore.getState().addLog(formatLog('log_c043_effect_salvage', { card: cardName }));
+                                        useGameStore.getState().addLog(formatLog('log_c043_effect_salvage', { card: cardName, cost: costCardName }));
                                     },
                                     formatLog('prompt_occultism_select_gy'),
                                     useGameStore.getState().graveyard

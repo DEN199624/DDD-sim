@@ -115,6 +115,20 @@ export function DeckArea() {
     }
   };
 
+  const scrollLeftDirection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRightDirection = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+    }
+  };
+
   const handleDraw = () => {
     if (isTargeting || isSelectingZone) return;
     drawCard();
@@ -246,7 +260,7 @@ export function DeckArea() {
               msOverflowStyle: 'none', // Hide standard scrollbar on IE/Edge
             }}
           >
-            {/* Custom CSS to hide Webkit standard scrollbar */}
+            {/* Custom CSS to hide Webkit standard scrollbar and styles for thick touch-friendly slider */}
             <style jsx global>{`
               div[ref] {
                 scrollbar-width: none; /* Firefox */
@@ -256,6 +270,35 @@ export function DeckArea() {
               }
               .hide-deck-scrollbar::-webkit-scrollbar {
                 display: none;
+              }
+              .touch-slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 12px !important;
+                background: #222 !important;
+                outline: none;
+                border-radius: 6px;
+              }
+              .touch-slider::-webkit-slider-thumb {
+                -webkit-appearance: none !important;
+                appearance: none !important;
+                width: 22px !important;
+                height: 22px !important;
+                border-radius: 50% !important;
+                background: #ed6c02 !important;
+                cursor: pointer !important;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
+                margin-top: -5px !important; /* Align webkit thumb with track */
+              }
+              .touch-slider::-moz-range-thumb {
+                width: 22px !important;
+                height: 22px !important;
+                border-radius: 50% !important;
+                background: #ed6c02 !important;
+                cursor: pointer !important;
+                border: none !important;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
               }
             `}</style>
             
@@ -313,26 +356,68 @@ export function DeckArea() {
               alignItems: 'center',
               padding: '0 40px 15px 40px',
               marginTop: '5px',
-              gap: '12px'
+              gap: '14px'
             }}>
-              <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>◀</span>
+              <button
+                onClick={scrollLeftDirection}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(237, 108, 2, 0.15)',
+                  border: '1px solid #ed6c02',
+                  color: '#ed6c02',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.3)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.15)'}
+              >
+                ◀
+              </button>
               <input
                 type="range"
                 min="0"
                 max="100"
                 value={scrollPercent}
                 onChange={handleSliderChange}
+                className="touch-slider"
                 style={{
                   flex: 1,
-                  height: '6px',
-                  background: '#222',
-                  outline: 'none',
-                  borderRadius: '3px',
-                  accentColor: '#ed6c02',
                   cursor: 'pointer'
                 }}
               />
-              <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>▶</span>
+              <button
+                onClick={scrollRightDirection}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(237, 108, 2, 0.15)',
+                  border: '1px solid #ed6c02',
+                  color: '#ed6c02',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.3)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.15)'}
+              >
+                ▶
+              </button>
             </div>
           )}
         </div>
