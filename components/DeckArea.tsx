@@ -229,96 +229,113 @@ export function DeckArea() {
 
       <div data-zone-id="DECK">
       <Zone id="deck-zone" type="DECK" label={formatLog('ui_main_deck_area')} style={{ width: '100%', height: 'auto', minHeight: '140px', margin: 0 }}>
-        <div 
-          ref={scrollRef}
-          onScroll={handleScroll}
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            minHeight: '140px',
-            maxHeight: '180px',
-            overflowX: 'auto',
-            padding: '20px 40px', // Extra horizontal padding for overlapping edges
-            width: '100%',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#ed6c02 transparent'
-          }}
-        >
-          <SortableContext items={deck} strategy={horizontalListSortingStrategy}>
-            {deck.map((id, index) => (
-              <SortableCard
-                key={id}
-                id={id}
-                card={cards[id]}
-                index={index}
-                isSelected={selectedDeckCardId === id}
-                onSelect={(selected) => setSelectedDeckCardId(selected)}
-              />
-            ))}
-          </SortableContext>
-          {deck.length === 0 && (
-            <div style={{
-              flex: 1,
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div 
+            ref={scrollRef}
+            onScroll={handleScroll}
+            style={{
               display: 'flex',
-              flexDirection: 'column',
+              flexDirection: 'row',
               alignItems: 'center',
+              minHeight: '140px',
+              maxHeight: '180px',
+              overflowX: 'auto',
+              padding: '20px 40px', // Extra horizontal padding for overlapping edges
+              width: '100%',
+              scrollbarWidth: 'none', // Hide standard scrollbar on Firefox
+              msOverflowStyle: 'none', // Hide standard scrollbar on IE/Edge
+            }}
+          >
+            {/* Custom CSS to hide Webkit standard scrollbar */}
+            <style jsx global>{`
+              div[ref] {
+                scrollbar-width: none; /* Firefox */
+              }
+              div[ref]::-webkit-scrollbar {
+                display: none; /* Safari and Chrome */
+              }
+              .hide-deck-scrollbar::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            
+            <div className="hide-deck-scrollbar" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <SortableContext items={deck} strategy={horizontalListSortingStrategy}>
+                {deck.map((id, index) => (
+                  <SortableCard
+                    key={id}
+                    id={id}
+                    card={cards[id]}
+                    index={index}
+                    isSelected={selectedDeckCardId === id}
+                    onSelect={(selected) => setSelectedDeckCardId(selected)}
+                  />
+                ))}
+              </SortableContext>
+            </div>
+            {deck.length === 0 && (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100px',
+                color: '#666',
+                fontStyle: 'italic',
+                gap: '10px'
+              }}>
+                <span>{formatLog('ui_no_deck_cards')}</span>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    background: 'rgba(237, 108, 2, 0.2)',
+                    border: '1px solid #ed6c02',
+                    color: '#ed6c02',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {formatLog('ui_reload_page')}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Horizontal Seek Bar Slider Control */}
+          {deck.length > 0 && (
+            <div style={{
+              width: '100%',
+              display: 'flex',
               justifyContent: 'center',
-              height: '100px',
-              color: '#666',
-              fontStyle: 'italic',
-              gap: '10px'
+              alignItems: 'center',
+              padding: '0 40px 15px 40px',
+              marginTop: '5px',
+              gap: '12px'
             }}>
-              <span>{formatLog('ui_no_deck_cards')}</span>
-              <button
-                onClick={() => window.location.reload()}
+              <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>◀</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={scrollPercent}
+                onChange={handleSliderChange}
                 style={{
-                  padding: '4px 8px',
-                  fontSize: '10px',
-                  background: 'rgba(237, 108, 2, 0.2)',
-                  border: '1px solid #ed6c02',
-                  color: '#ed6c02',
-                  borderRadius: '4px',
+                  flex: 1,
+                  height: '6px',
+                  background: '#222',
+                  outline: 'none',
+                  borderRadius: '3px',
+                  accentColor: '#ed6c02',
                   cursor: 'pointer'
                 }}
-              >
-                {formatLog('ui_reload_page')}
-              </button>
+              />
+              <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>▶</span>
             </div>
           )}
         </div>
-
-        {/* Horizontal Seek Bar Slider Control */}
-        {deck.length > 0 && (
-          <div style={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '0 40px 15px 40px',
-            marginTop: '-5px',
-            gap: '12px'
-          }}>
-            <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>◀</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={scrollPercent}
-              onChange={handleSliderChange}
-              style={{
-                flex: 1,
-                height: '6px',
-                background: '#222',
-                outline: 'none',
-                borderRadius: '3px',
-                accentColor: '#ed6c02',
-                cursor: 'pointer'
-              }}
-            />
-            <span style={{ color: '#aaa', fontSize: '10px', userSelect: 'none' }}>▶</span>
-          </div>
-        )}
       </Zone>
       </div>
 
