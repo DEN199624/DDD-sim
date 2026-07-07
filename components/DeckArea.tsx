@@ -275,30 +275,40 @@ export function DeckArea() {
                 -webkit-appearance: none;
                 appearance: none;
                 width: 100%;
-                height: 12px !important;
-                background: #222 !important;
+                height: 4px !important;
+                background: rgba(255, 255, 255, 0.15) !important;
                 outline: none;
-                border-radius: 6px;
+                border-radius: 2px;
+                padding: 12px 0 !important;
+                background-clip: content-box !important;
+                cursor: pointer;
               }
               .touch-slider::-webkit-slider-thumb {
                 -webkit-appearance: none !important;
                 appearance: none !important;
-                width: 22px !important;
-                height: 22px !important;
-                border-radius: 50% !important;
-                background: #ed6c02 !important;
-                cursor: pointer !important;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
-                margin-top: -5px !important; /* Align webkit thumb with track */
-              }
-              .touch-slider::-moz-range-thumb {
-                width: 22px !important;
-                height: 22px !important;
+                width: 14px !important;
+                height: 14px !important;
                 border-radius: 50% !important;
                 background: #ed6c02 !important;
                 cursor: pointer !important;
                 border: none !important;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
+                margin-top: -5px !important; /* Center on 4px track */
+                transition: transform 0.1s ease !important;
+              }
+              .touch-slider::-webkit-slider-thumb:active {
+                transform: scale(1.35) !important;
+              }
+              .touch-slider::-moz-range-thumb {
+                width: 14px !important;
+                height: 14px !important;
+                border-radius: 50% !important;
+                background: #ed6c02 !important;
+                cursor: pointer !important;
+                border: none !important;
+                transition: transform 0.1s ease !important;
+              }
+              .touch-slider::-moz-range-thumb:active {
+                transform: scale(1.35) !important;
               }
             `}</style>
             
@@ -355,33 +365,8 @@ export function DeckArea() {
               justifyContent: 'center',
               alignItems: 'center',
               padding: '0 40px 15px 40px',
-              marginTop: '5px',
-              gap: '14px'
+              marginTop: '5px'
             }}>
-              <button
-                onClick={scrollLeftDirection}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: 'rgba(237, 108, 2, 0.15)',
-                  border: '1px solid #ed6c02',
-                  color: '#ed6c02',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.3)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.15)'}
-              >
-                ◀
-              </button>
               <input
                 type="range"
                 min="0"
@@ -394,30 +379,6 @@ export function DeckArea() {
                   cursor: 'pointer'
                 }}
               />
-              <button
-                onClick={scrollRightDirection}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: 'rgba(237, 108, 2, 0.15)',
-                  border: '1px solid #ed6c02',
-                  color: '#ed6c02',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.3)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(237, 108, 2, 0.15)'}
-              >
-                ▶
-              </button>
             </div>
           )}
         </div>
