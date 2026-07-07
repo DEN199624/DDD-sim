@@ -498,6 +498,7 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         descriptionJa: 'チューナー＋チューナー以外のモンスター１体以上\nこのカード名の(1)の効果は１ターンに１度しか使用できない。\n(1)：このカードがモンスターゾーンに存在し、自分フィールドにこのカード以外の「DD」モンスターが召喚・特殊召喚された場合、自分の墓地の「DD」モンスター１体を対象として発動できる。そのモンスターを特殊召喚する。',
         attack: 3000,
         defense: 2500,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250324/20250324230732.png',
     },
     'c042': {
         cardId: 'c042',
