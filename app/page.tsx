@@ -453,9 +453,10 @@ export default function Home() {
         return;
       }
 
-      // Rule: Block Nightmare Throne (c042) from being placed in Spell/Trap Zone
-      if (fromHand && store.cards[activeId]?.cardId === 'c042' && zoneType === 'SPELL_TRAP_ZONE') {
-        console.warn('Nightmare Throne cannot be placed in Spell/Trap Zone.');
+      // Rule: Block Nightmare Throne (c042) from being placed in Spell/Trap Zone, Monster Zone or Extra Monster Zone
+      if (fromHand && store.cards[activeId]?.cardId === 'c042' && 
+          (zoneType === 'SPELL_TRAP_ZONE' || zoneType === 'MONSTER_ZONE' || zoneType === 'EXTRA_MONSTER_ZONE')) {
+        console.warn('Nightmare Throne cannot be placed in Spell/Trap Zone or Monster Zone.');
         setDragState(false, null);
         setActiveCard(null);
         return;
