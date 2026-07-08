@@ -6599,6 +6599,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const { history } = get();
         if (get().isReplaying || history.length === 0) return;
 
+        // Store current visual settings to maintain them during replay
+        const currentBgColor = get().backgroundColor;
+        const currentFieldColor = get().fieldColor;
+        const currentUseGradient = get().useGradient;
+
         // Store original logs so we don't accidentally wipe them out during replay steps
         const originalLogs = [...get().logs];
 
@@ -6746,6 +6751,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             set({
                 ...snapshot,
+                backgroundColor: currentBgColor,
+                fieldColor: currentFieldColor,
+                useGradient: currentUseGradient,
                 history: history, // Preserve history array in state so it doesn't get lost
                 logs: currentLogs,
                 currentStepIndex: i,
