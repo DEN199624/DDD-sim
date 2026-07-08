@@ -73,9 +73,8 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
             }
 
             const matchingLevelCount = monsters.filter(m => {
-                const mRank = m.rank || 0;
                 const mLv = getLevel(m);
-                return mLv === rank || mRank === rank;
+                return mLv === rank;
             }).length;
             if (card.name.includes('Marksman King Tell')) {
                 const hasRank4DDD = monsters.some(m => m.subType?.includes('XYZ') && (m.rank === 4 || m.level === 4) && m.name.includes('DDD'));
