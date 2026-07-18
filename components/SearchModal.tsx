@@ -190,8 +190,7 @@ export function SearchModal() {
                 border: '1px solid #444',
                 borderRadius: '12px',
                 background: 'rgba(15,15,20,0.92)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-                transition: 'all 0.3s ease-in-out'
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
             }}>
                 {validTargets.length === 0 ? (
                     <div style={{ color: '#aaa', padding: '20px' }}>{formatLog('ui_no_candidates')}</div>

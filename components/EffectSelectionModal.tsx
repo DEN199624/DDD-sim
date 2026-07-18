@@ -156,8 +156,7 @@ export function EffectSelectionModal() {
                 maxWidth: modalMaxWidth,
                 width: modalWidth,
                 maxHeight: contentMaxHeight,
-                overflowY: 'auto',
-                transition: 'all 0.3s ease-in-out'
+                overflowY: 'auto'
             }}>
                 <h3 style={{
                     marginBottom: '15px',
