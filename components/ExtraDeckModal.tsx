@@ -1,6 +1,6 @@
 import { ComponentType } from 'react';
 import React from 'react';
-import { useGameStore } from '@/store/gameStore';
+import { useGameStore, isDDArchetype } from '@/store/gameStore';
 import { Card } from '@/components/Card';
 import { Card as CardType } from '@/types';
 import { formatLog, getCardName } from '@/data/locales';
@@ -53,10 +53,45 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
             if (card.faceUp) return false; // Hybrid P-Monster Face-Up in EX: Only P-Summonable
             const monsterIds = [...monsterZones, ...useGameStore.getState().extraMonsterZones].filter((id): id is string => id !== null);
             const monsters = monsterIds.map(id => cards[id]);
-            const tuners = monsters.filter(m => m.subType?.includes('TUNER'));
-            const nonTuners = monsters.filter(m => !m.subType?.includes('TUNER'));
             const targetLevel = card.level || 0;
-            return tuners.some(t => nonTuners.some(nt => (getLevel(t) + getLevel(nt)) === targetLevel));
+
+            const tuners = monsters.filter(m => {
+                if (!m.subType?.includes('TUNER')) return false;
+                // c035 (Whitest) requires "DD" Tuner
+                if (card.cardId === 'c035' && !isDDArchetype(m)) return false;
+                return true;
+            });
+
+            const nonTuners = monsters.filter(m => {
+                if (m.subType?.includes('TUNER')) return false;
+                // c020 (Siegfried) requires "DD" non-Tuner
+                if (card.cardId === 'c020' && !isDDArchetype(m)) return false;
+                // c035 (Whitest) requires "DDD" non-Tuner
+                if (card.cardId === 'c035' && !(m.name.includes('DDD') || m.nameJa?.includes('DDD') || m.nameJa?.includes('ＤＤＤ'))) return false;
+                // c041 (Alexander) requires "DD" non-Tuner
+                if (card.cardId === 'c041' && !isDDArchetype(m)) return false;
+                return true;
+            });
+
+            // Check if there's a tuner and a subset of non-tuners that sums to targetLevel
+            return tuners.some(t => {
+                const tunerLv = getLevel(t);
+                const remainingLv = targetLevel - tunerLv;
+                if (remainingLv <= 0) return false;
+
+                // Recursive subset sum check
+                const canSumTo = (targetSum: number, candidates: CardType[], startIndex: number): boolean => {
+                    if (targetSum === 0) return true;
+                    if (targetSum < 0 || startIndex >= candidates.length) return false;
+                    for (let j = startIndex; j < candidates.length; j++) {
+                        const lv = getLevel(candidates[j]);
+                        if (canSumTo(targetSum - lv, candidates, j + 1)) return true;
+                    }
+                    return false;
+                };
+
+                return canSumTo(remainingLv, nonTuners, 0);
+            });
         }
 
         // 3. Xyz

@@ -127,7 +127,7 @@ const sortExtraDeck = (instanceIds: string[], cards: { [id: string]: Card }): st
 };
 
 // Archetype identification helper
-const isDDArchetype = (card: any): boolean => {
+export const isDDArchetype = (card: any): boolean => {
     if (!card) return false;
     const n = (card.name || '').toUpperCase();
     const nj = (card.nameJa || '');
@@ -5083,7 +5083,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (!c.subType?.includes('TUNER')) return false;
 
                 // c035 Tuner Requirement: "DD" Tuner
-                if (extraDeckCardId === 'c035' && !c.name.includes('DD')) return false;
+                if (extraDeckCardId === 'c035' && !isDDArchetype(c)) return false;
 
                 return true;
             },
@@ -5105,10 +5105,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             if (tunerLv + currentNonTunerLvSum + nonTunerLv > level) return false;
 
                             // c035 Requirement: "DDD" non-Tuner
-                            if (extraDeckCardId === 'c035' && !c.name.includes('DDD')) return false;
+                            if (extraDeckCardId === 'c035' && !(c.name.includes('DDD') || c.nameJa?.includes('DDD') || c.nameJa?.includes('ＤＤＤ'))) return false;
 
-                            // c020 (Siegfried) Requirement: "DD" non-Tuner
-                            if (extraDeckCardId === 'c020' && !isDDArchetype(c)) return false;
+                            // c020 (Siegfried) and c041 (Alexander) Requirement: "DD" non-Tuner
+                            if ((extraDeckCardId === 'c020' || extraDeckCardId === 'c041') && !isDDArchetype(c)) return false;
 
                             return true;
                         },
