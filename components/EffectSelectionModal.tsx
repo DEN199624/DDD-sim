@@ -190,7 +190,7 @@ export function EffectSelectionModal() {
                                 borderRadius: '12px',
                                 cursor: 'pointer',
                                 fontSize: fontSize,
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                transition: 'background 0.3s, border-color 0.3s, transform 0.3s, box-shadow 0.3s',
                                 textAlign: opt.imageUrl ? 'center' : 'left',
                                 position: 'relative',
                                 overflow: 'hidden'
