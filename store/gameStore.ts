@@ -5107,8 +5107,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             // c035 Requirement: "DDD" non-Tuner
                             if (extraDeckCardId === 'c035' && !(c.name.includes('DDD') || c.nameJa?.includes('DDD') || c.nameJa?.includes('ＤＤＤ'))) return false;
 
-                            // c020 (Siegfried) and c041 (Alexander) Requirement: "DD" non-Tuner
-                            if ((extraDeckCardId === 'c020' || extraDeckCardId === 'c041') && !isDDArchetype(c)) return false;
+                            // c020 (Siegfried) Requirement: "DD" non-Tuner (c041 Alexander has no non-Tuner archetype restrictions)
+                            if (extraDeckCardId === 'c020' && !isDDArchetype(c)) return false;
 
                             return true;
                         },

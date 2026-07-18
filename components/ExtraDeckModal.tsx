@@ -68,8 +68,6 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
                 if (card.cardId === 'c020' && !isDDArchetype(m)) return false;
                 // c035 (Whitest) requires "DDD" non-Tuner
                 if (card.cardId === 'c035' && !(m.name.includes('DDD') || m.nameJa?.includes('DDD') || m.nameJa?.includes('ＤＤＤ'))) return false;
-                // c041 (Alexander) requires "DD" non-Tuner
-                if (card.cardId === 'c041' && !isDDArchetype(m)) return false;
                 return true;
             });
 
