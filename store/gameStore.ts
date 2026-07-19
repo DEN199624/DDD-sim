@@ -6666,6 +6666,63 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return ids;
         };
 
+        // Helper: get mid snapshot by moving only a subset of cards from prevSnap to finalSnap
+        const getMidSnapshot = (
+            prevSnap: any,
+            finalSnap: any,
+            movedCardIds: Set<string>
+        ): any => {
+            const mid = JSON.parse(JSON.stringify(prevSnap));
+            const arrays = ['hand', 'graveyard', 'banished', 'extraDeck', 'deck', 'monsterZones', 'spellTrapZones', 'extraMonsterZones'];
+            
+            movedCardIds.forEach(cardId => {
+                arrays.forEach(key => {
+                    if (Array.isArray(mid[key])) {
+                        mid[key] = mid[key].map((x: any) => x === cardId ? null : x);
+                        if (['hand', 'graveyard', 'banished', 'extraDeck', 'deck'].includes(key)) {
+                            mid[key] = mid[key].filter((x: any) => x !== null && x !== undefined);
+                        }
+                    }
+                });
+                if (mid.fieldZone === cardId) {
+                    mid.fieldZone = null;
+                }
+
+                arrays.forEach(key => {
+                    if (Array.isArray(finalSnap[key])) {
+                        if (['monsterZones', 'spellTrapZones', 'extraMonsterZones'].includes(key)) {
+                            const idx = finalSnap[key].indexOf(cardId);
+                            if (idx !== -1) {
+                                mid[key][idx] = cardId;
+                            }
+                        } else {
+                            if (finalSnap[key].includes(cardId) && !mid[key].includes(cardId)) {
+                                mid[key].push(cardId);
+                            }
+                        }
+                    }
+                });
+                if (finalSnap.fieldZone === cardId) {
+                    mid.fieldZone = cardId;
+                }
+
+                if (finalSnap.materials) {
+                    if (!mid.materials) mid.materials = {};
+                    if (finalSnap.materials[cardId]) {
+                        mid.materials[cardId] = [...finalSnap.materials[cardId]];
+                    }
+                    Object.keys(finalSnap.materials).forEach(parentXyzId => {
+                        const finalMats = finalSnap.materials[parentXyzId] || [];
+                        if (finalMats.includes(cardId) || (mid.materials[parentXyzId] && mid.materials[parentXyzId].includes(cardId))) {
+                            mid.materials[parentXyzId] = [...finalMats];
+                        }
+                    });
+                }
+            });
+
+            return mid;
+        };
+
         // Track previous state to detect changes
         let prevPendulumSummonCount = history[0]?.pendulumSummonCount || 0;
         let prevSnapshot: Partial<any> | null = null;
@@ -6686,14 +6743,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const allCards = get().cards;
                 const prevSnap = prevSnapshot!; // safe: guarded by if(prevSnapshot)
 
-                // Cards that appear in current but not prev: these moved INTO a new zone
-                // Cards that disappear from prev but not curr: moved OUT
-                // Moved card = in prev zone A, now in zone B (same cardId, different zone)
                 prevIds.forEach(cardId => {
                     const prevZone = getZoneIdOfCard(prevSnap, cardId);
                     const currZone = getZoneIdOfCard(snapshot, cardId);
                     if (prevZone && currZone && prevZone !== currZone && allCards[cardId]) {
-                        // card moved from prevZone to currZone
                         const fromEl = document.querySelector(`[data-card-id="${cardId}"]`);
                         const fromRect = fromEl
                             ? fromEl.getBoundingClientRect()
@@ -6710,14 +6763,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const p1 = sZones ? sZones[0] : null;
             const p4 = sZones ? sZones[4] : null;
             if (sCount > prevPendulumSummonCount && p1 && p4) {
-                // Temporarily apply target P-Zones AND Hand to the screen so the cut-in looks correct.
-                // Updating both ensures the scale cards are moved cleanly without dnd-kit ID collisions (which caused "wiggling/click" effects).
                 set({ 
                     spellTrapZones: sZones,
-                    hand: snapshot.hand // Prevents the card from existing in both Hand and P-Zone simultaneously
+                    hand: snapshot.hand
                 });
                 
-                // Remove scale moves from the flyer animation, since they just instantly snapped into place behind the cut-in
                 const scaleIds = [p1, p4].filter(Boolean);
                 moves = moves.filter(m => !scaleIds.includes(m.cardId));
 
@@ -6726,8 +6776,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 set({ showPendulumCutIn: false });
             }
             prevPendulumSummonCount = sCount;
-
-
 
             const logCount = snapshot.logCount || 0;
             const currentLogs = originalLogs.slice(0, logCount);
@@ -6738,13 +6786,84 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const currentAnimDuration = Math.floor(totalStepTime * 0.7); // 70% of step time for smooth flying
             const currentPauseDuration = Math.floor(totalStepTime * 0.3);
 
-            if (moves.length > 0 && currentAnimDuration > 30) {
-                console.log(`[Replay Step ${i}] Detected ${moves.length} moves:`, moves);
-                // Show flying card animations for all moved cards simultaneously
-                set({ replayAnimations: moves, replayAnimDuration: currentAnimDuration });
-                await new Promise(resolve => setTimeout(resolve, currentAnimDuration));
-                // Do not set replayAnimations to null here! Do it together with the state update below
-                // to prevent a 1-frame flicker where both flying and placed cards are absent.
+            // Group moves by target group zone and overlay relationship
+            let moveGroups: import('@/components/ReplayCardAnimationOverlay').ReplayCardMove[][] = [];
+            if (moves.length > 0) {
+                const getGroupZone = (m: any): string => {
+                    const zone = getZoneIdOfCard(snapshot, m.cardId);
+                    if (!zone) return 'UNKNOWN';
+                    if (zone.startsWith('MONSTER_ZONE') || zone.startsWith('EXTRA_MONSTER_ZONE')) return 'MONSTER';
+                    if (zone.startsWith('SPELL_TRAP_ZONE') || zone === 'FIELD_ZONE') return 'SPELL_TRAP';
+                    return zone; // HAND, GRAVEYARD, BANISHED, EXTRA_DECK, DECK
+                };
+
+                const zoneGroups: { [key: string]: typeof moves } = {};
+                moves.forEach(m => {
+                    const gz = getGroupZone(m);
+                    if (!zoneGroups[gz]) zoneGroups[gz] = [];
+                    zoneGroups[gz].push(m);
+                });
+
+                const getXyzMaterials = (cId: string): string[] => {
+                    const matsPrev = prevSnapshot?.materials?.[cId] || [];
+                    const matsCurr = snapshot.materials?.[cId] || [];
+                    return Array.from(new Set([...matsPrev, ...matsCurr]));
+                };
+
+                let tempGroups = Object.values(zoneGroups);
+                let merged = true;
+                while (merged) {
+                    merged = false;
+                    for (let j = 0; j < tempGroups.length; j++) {
+                        for (let k = j + 1; k < tempGroups.length; k++) {
+                            const groupJ = tempGroups[j];
+                            const groupK = tempGroups[k];
+
+                            const shouldMerge = groupJ.some(m => {
+                                const mats = getXyzMaterials(m.cardId);
+                                return groupK.some(mk => mats.includes(mk.cardId));
+                            }) || groupK.some(m => {
+                                const mats = getXyzMaterials(m.cardId);
+                                return groupJ.some(mj => mats.includes(mj.cardId));
+                            });
+
+                            if (shouldMerge) {
+                                tempGroups[j] = [...groupJ, ...groupK];
+                                tempGroups.splice(k, 1);
+                                merged = true;
+                                break;
+                            }
+                        }
+                        if (merged) break;
+                    }
+                }
+                moveGroups = tempGroups;
+            }
+
+            let currentMidSnapshot = prevSnapshot ? JSON.parse(JSON.stringify(prevSnapshot)) : null;
+
+            if (moveGroups.length > 0 && currentAnimDuration > 30) {
+                console.log(`[Replay Step ${i}] Detected ${moveGroups.length} move groups.`);
+                for (let g = 0; g < moveGroups.length; g++) {
+                    if (!get().isReplaying) break;
+                    const group = moveGroups[g];
+                    
+                    set({ replayAnimations: group, replayAnimDuration: currentAnimDuration });
+
+                    const movedIds = new Set(group.map(m => m.cardId));
+                    currentMidSnapshot = getMidSnapshot(currentMidSnapshot || snapshot, snapshot, movedIds);
+
+                    set({
+                        ...currentMidSnapshot,
+                        backgroundColor: currentBgColor,
+                        fieldColor: currentFieldColor,
+                        useGradient: currentUseGradient,
+                        history: history,
+                        isReplaying: true,
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, currentAnimDuration));
+                }
             } else if (moves.length === 0) {
                 console.log(`[Replay Step ${i}] No moves detected.`);
             }
