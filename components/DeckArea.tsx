@@ -88,46 +88,7 @@ export function DeckArea() {
   const isTargeting = targetingState.isOpen;
   const isSelectingZone = zoneSelectionState.isOpen;
 
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const [scrollPercent, setScrollPercent] = useState(0);
 
-  // Sync slider on scroll
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      const maxScroll = scrollWidth - clientWidth;
-      if (maxScroll > 0) {
-        setScrollPercent((scrollLeft / maxScroll) * 100);
-      } else {
-        setScrollPercent(0);
-      }
-    }
-  };
-
-  // Sync scroll on slider drag
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setScrollPercent(val);
-    if (scrollRef.current) {
-      const { scrollWidth, clientWidth } = scrollRef.current;
-      const maxScroll = scrollWidth - clientWidth;
-      scrollRef.current.scrollLeft = (val / 100) * maxScroll;
-    }
-  };
-
-  const scrollLeftDirection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -240, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRightDirection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 240, behavior: 'smooth' });
-    }
-  };
 
   const handleDraw = () => {
     if (isTargeting || isSelectingZone) return;
@@ -243,142 +204,59 @@ export function DeckArea() {
 
       <div data-zone-id="DECK">
       <Zone id="deck-zone" type="DECK" label={formatLog('ui_main_deck_area')} style={{ width: '100%', height: 'auto', minHeight: '140px', margin: 0 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <div 
-            ref={scrollRef}
-            onScroll={handleScroll}
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              minHeight: '140px',
-              maxHeight: '180px',
-              overflowX: 'auto',
-              padding: '20px 40px', // Extra horizontal padding for overlapping edges
-              width: '100%',
-              scrollbarWidth: 'none', // Hide standard scrollbar on Firefox
-              msOverflowStyle: 'none', // Hide standard scrollbar on IE/Edge
-            }}
-          >
-            {/* Custom CSS to hide Webkit standard scrollbar and styles for thick touch-friendly slider */}
-            <style jsx global>{`
-              div[ref] {
-                scrollbar-width: none; /* Firefox */
-              }
-              div[ref]::-webkit-scrollbar {
-                display: none; /* Safari and Chrome */
-              }
-              .hide-deck-scrollbar::-webkit-scrollbar {
-                display: none;
-              }
-              .touch-slider {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 100%;
-                height: 4px !important;
-                background: rgba(255, 255, 255, 0.15) !important;
-                outline: none;
-                border-radius: 2px;
-                padding: 12px 0 !important;
-                background-clip: content-box !important;
-                cursor: pointer;
-              }
-              .touch-slider::-webkit-slider-thumb {
-                -webkit-appearance: none !important;
-                appearance: none !important;
-                width: 14px !important;
-                height: 14px !important;
-                border-radius: 50% !important;
-                background: #ed6c02 !important;
-                cursor: pointer !important;
-                border: none !important;
-                margin-top: -5px !important; /* Center on 4px track */
-                transition: transform 0.1s ease !important;
-              }
-              .touch-slider::-webkit-slider-thumb:active {
-                transform: scale(1.35) !important;
-              }
-              .touch-slider::-moz-range-thumb {
-                width: 14px !important;
-                height: 14px !important;
-                border-radius: 50% !important;
-                background: #ed6c02 !important;
-                cursor: pointer !important;
-                border: none !important;
-                transition: transform 0.1s ease !important;
-              }
-              .touch-slider::-moz-range-thumb:active {
-                transform: scale(1.35) !important;
-              }
-            `}</style>
-            
-            <div className="hide-deck-scrollbar" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <SortableContext items={deck} strategy={horizontalListSortingStrategy}>
-                {deck.map((id, index) => (
-                  <SortableCard
-                    key={id}
-                    id={id}
-                    card={cards[id]}
-                    index={index}
-                    isSelected={selectedDeckCardId === id}
-                    onSelect={(selected) => setSelectedDeckCardId(selected)}
-                  />
-                ))}
-              </SortableContext>
-            </div>
-            {deck.length === 0 && (
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100px',
-                color: '#666',
-                fontStyle: 'italic',
-                gap: '10px'
-              }}>
-                <span>{formatLog('ui_no_deck_cards')}</span>
-                <button
-                  onClick={() => window.location.reload()}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '10px',
-                    background: 'rgba(237, 108, 2, 0.2)',
-                    border: '1px solid #ed6c02',
-                    color: '#ed6c02',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {formatLog('ui_reload_page')}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Horizontal Seek Bar Slider Control */}
-          {deck.length > 0 && (
+        <div 
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            minHeight: '140px',
+            maxHeight: '180px',
+            overflowX: 'auto',
+            padding: '20px 40px', // Extra horizontal padding for overlapping edges
+            width: '100%',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#ed6c02 transparent'
+          }}
+        >
+          <SortableContext items={deck} strategy={horizontalListSortingStrategy}>
+            {deck.map((id, index) => (
+              <SortableCard
+                key={id}
+                id={id}
+                card={cards[id]}
+                index={index}
+                isSelected={selectedDeckCardId === id}
+                onSelect={(selected) => setSelectedDeckCardId(selected)}
+              />
+            ))}
+          </SortableContext>
+          {deck.length === 0 && (
             <div style={{
-              width: '100%',
+              flex: 1,
               display: 'flex',
-              justifyContent: 'center',
+              flexDirection: 'column',
               alignItems: 'center',
-              padding: '0 40px 15px 40px',
-              marginTop: '5px'
+              justifyContent: 'center',
+              height: '100px',
+              color: '#666',
+              fontStyle: 'italic',
+              gap: '10px'
             }}>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={scrollPercent}
-                onChange={handleSliderChange}
-                className="touch-slider"
+              <span>{formatLog('ui_no_deck_cards')}</span>
+              <button
+                onClick={() => window.location.reload()}
                 style={{
-                  flex: 1,
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  background: 'rgba(237, 108, 2, 0.2)',
+                  border: '1px solid #ed6c02',
+                  color: '#ed6c02',
+                  borderRadius: '4px',
                   cursor: 'pointer'
                 }}
-              />
+              >
+                {formatLog('ui_reload_page')}
+              </button>
             </div>
           )}
         </div>
