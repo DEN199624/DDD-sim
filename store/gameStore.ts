@@ -4664,6 +4664,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     // Check Genghis (c007, c019) in Monster Zones & EMZ
                     [...s.monsterZones, ...s.extraMonsterZones].forEach(mid => {
                         if (!mid) return;
+                        // Skip if the card is currently overlayed as an Xyz material to prevent incorrect triggers (e.g. Temujin c019)
+                        const isUnderOther = Object.values(s.materials).some(mats => mats.includes(mid));
+                        if (isUnderOther) return;
+                        if (s.materials[cardId]?.includes(mid)) return;
+
                         if (isCardNegated(s, mid)) return; // Skip if negated
                         const card = s.cards[mid];
                         if (card.cardId === 'c007') {
@@ -5700,6 +5705,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const candidates: string[] = [];
             [...stateAfterXyz.monsterZones, ...stateAfterXyz.extraMonsterZones].forEach(mid => {
                 if (!mid || mid === xyzCardId) return;
+                // Skip if the card was just used as a material or is overlayed under any card
+                if (materialIds.includes(mid)) return;
+                const isUnderOther = Object.values(stateAfterXyz.materials).some(mats => mats.includes(mid));
+                if (isUnderOther) return;
+                if (stateAfterXyz.materials[xyzCardId]?.includes(mid)) return;
+
                 if (isCardNegated(stateAfterXyz, mid)) return;
                 const card = stateAfterXyz.cards[mid];
                 if (card.cardId === 'c007' || card.cardId === 'c019' || card.cardId === 'c041') {
