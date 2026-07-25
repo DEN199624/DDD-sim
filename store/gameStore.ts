@@ -6084,7 +6084,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const isNegated = isCardNegated(get(), cardId);
 
                 if (isNegated) {
-                    get().addLog(formatLog('log_effect_negated', { card: getCardName(card, get().language) }));
+                    const state = get();
+                    const isKaliYugaOnField = [...state.monsterZones, ...state.extraMonsterZones].some(id => {
+                        if (!id) return false;
+                        return state.cards[id]?.cardId === 'c044' && !state.cardPropertyModifiers[id]?.isNegated;
+                    });
+                    const isFieldCard = state.monsterZones.includes(cardId) ||
+                                        state.extraMonsterZones.includes(cardId) ||
+                                        state.spellTrapZones.includes(cardId) ||
+                                        state.fieldZone === cardId;
+                    const negatedByKaliYuga = isKaliYugaOnField && isFieldCard && state.cards[cardId]?.cardId !== 'c044';
+
+                    if (!negatedByKaliYuga) {
+                        get().addLog(formatLog('log_effect_negated', { card: getCardName(card, get().language) }));
+                    }
                     return;
                 }
 
