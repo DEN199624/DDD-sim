@@ -1104,7 +1104,12 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
             store.startEffectSelection(formatLog('prompt_thomas_ss'), [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }], (choice: string) => {
                 if (choice === 'yes') {
                     store.startTargeting(
-                        (c: any) => (store.spellTrapZones.includes(c.id)) && isDDArchetype(c),
+                        (c: any) => {
+                            const idx = store.spellTrapZones.indexOf(c.id);
+                            const isPZone = idx === 0 || idx === 4;
+                            const isPendulum = c.subType?.includes('PENDULUM');
+                            return isPZone && isPendulum;
+                        },
                         (tid: string) => {
                             const destroyedCardName = getCardName(store.cards[tid], store.language);
                             useGameStore.setState({ lastEffectSourceId: selfId, isBatching: true });
