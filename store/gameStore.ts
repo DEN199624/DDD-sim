@@ -134,6 +134,37 @@ export const isDDArchetype = (card: any): boolean => {
     return n.includes('DD') || n.includes('DARK CONTRACT') || nj.includes('DD') || nj.includes('契約書');
 };
 
+export const isCardNegated = (state: any, cardId: string): boolean => {
+    const card = state.cards[cardId];
+    if (!card) return false;
+
+    // 1. Check individual negation modifiers
+    if (state.cardPropertyModifiers[cardId]?.isNegated) {
+        return true;
+    }
+
+    // 2. Check field-wide negation by Kali Yuga (c044)
+    const kaliYugaInstance = [...state.monsterZones, ...state.extraMonsterZones].find(id => {
+        if (!id) return false;
+        return state.cards[id]?.cardId === 'c044';
+    });
+
+    if (kaliYugaInstance) {
+        const isKaliYugaNegated = state.cardPropertyModifiers[kaliYugaInstance]?.isNegated;
+        if (!isKaliYugaNegated) {
+            const isFieldCard = state.monsterZones.includes(cardId) ||
+                                state.extraMonsterZones.includes(cardId) ||
+                                state.spellTrapZones.includes(cardId) ||
+                                state.fieldZone === cardId;
+            if (isFieldCard && cardId !== kaliYugaInstance) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+};
+
 // Strict DD Card identification (includes c034 which is treated as a DD card)
 const isStrictlyDDCard = (card: any): boolean => {
     if (!card) return false;
@@ -235,7 +266,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                 ? '「軌跡の魔術師」のリンク召喚成功時の効果を発動しますか？（デッキからPモンスターをサーチ）'
                 : 'Activate the effect of "Beyond the Pendulum" upon Link Summon? (Search a Pendulum Monster)',
             [{ label: store.language === 'ja' ? 'はい' : 'Yes', value: 'yes' }, { label: store.language === 'ja' ? 'いいえ' : 'No', value: 'no' }],
-            (choice, isNegated) => {
+            (choice: string, isNegated?: boolean) => {
                 if (choice === 'yes') {
                     store.addTurnEffectUsage('c038');
                     if (isNegated) return;
@@ -394,6 +425,84 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
     'c041': (store, selfId, fromLocation) => {
         // Executive Alexander shares the same SS trigger logic as Genghis
         EFFECT_LOGIC['c007'](store, selfId, fromLocation);
+    },
+    'c044': (store, selfId, fromLocation) => {
+        // [Xyz Effect] Detach 1; Set 1 "Dark Contract" from GY (Turn 1)
+        if (store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId)) {
+            if (fromLocation) return; // Ignition only
+
+            const usage = store.turnEffectUsage['c044_effect'] || 0;
+            if (usage >= 1) {
+                store.addLog(formatLog('log_effect_already_used', { card: getCardName(store.cards[selfId], store.language) }));
+                return;
+            }
+
+            const hasMaterials = store.materials[selfId] && store.materials[selfId].length > 0;
+            const contractsInGY = store.graveyard.filter((id: string) => {
+                const c = store.cards[id];
+                if (!c) return false;
+                const nameEng = (c.name || '').toUpperCase();
+                const nameJa = c.nameJa || '';
+                return isDDArchetype(c) && (nameEng.includes('CONTRACT') || nameJa.includes('契約書'));
+            });
+            const emptySTZoneIndices = store.spellTrapZones.map((v: string | null, i: number) => v === null ? i : -1).filter((i: number) => i !== -1);
+
+            if (hasMaterials && contractsInGY.length > 0 && emptySTZoneIndices.length > 0) {
+                store.startEffectSelection(
+                    formatLog('prompt_c044_activate'),
+                    [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
+                    (choice: string, isNegated?: boolean) => {
+                        if (choice === 'yes') {
+                            const materials = store.materials[selfId];
+                            store.startEffectSelection(
+                                store.language === 'ja' ? '取り除く素材を選択してください：' : 'Select material to detach:',
+                                materials.map((mid: string) => ({ label: getCardName(store.cards[mid], store.language), value: mid })),
+                                (matId: string) => {
+                                    useGameStore.setState({ isBatching: true });
+                                    try {
+                                        store.moveCard(matId, 'GRAVEYARD', 0, 'MATERIAL', false, false, undefined, true);
+                                        store.addTurnEffectUsage('c044_effect');
+
+                                        if (isNegated) return;
+
+                                        // Check empty zones again dynamically
+                                        const s = useGameStore.getState();
+                                        const freshEmpty = s.spellTrapZones.map((v: string | null, i: number) => v === null ? i : -1).filter((i: number) => i !== -1);
+                                        if (freshEmpty.length === 0) return;
+
+                                        const freshGY = s.graveyard.filter((id: string) => {
+                                            const c = s.cards[id];
+                                            if (!c) return false;
+                                            const nameEng = (c.name || '').toUpperCase();
+                                            const nameJa = c.nameJa || '';
+                                            return isDDArchetype(c) && (nameEng.includes('CONTRACT') || nameJa.includes('契約書'));
+                                        });
+
+                                        if (freshGY.length > 0) {
+                                            s.startSearch(
+                                                (card: any) => freshGY.includes(card.id),
+                                                (selectedId: string) => {
+                                                    const s2 = useGameStore.getState();
+                                                    const targetIdx = freshEmpty[0];
+                                                    s2.moveCard(selectedId, 'SPELL_TRAP_ZONE', targetIdx, 'GRAVEYARD', false, true, undefined, true);
+                                                    s2.addLog(formatLog('log_c044_effect', { card: getCardName(s2.cards[selectedId], s2.language) }));
+                                                },
+                                                formatLog('prompt_select_card'),
+                                                freshGY
+                                            );
+                                        }
+                                    } finally {
+                                        useGameStore.setState({ isBatching: false });
+                                        useGameStore.getState().processUiQueue();
+                                        useGameStore.getState().pushHistory();
+                                    }
+                                }
+                            );
+                        }
+                    }, false, selfId
+                );
+            }
+        }
     },
     'c042': (store, selfId, fromLocation) => {
         if (store.fieldZone === selfId) {
@@ -4546,7 +4655,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     // Check Genghis (c007, c019) in Monster Zones & EMZ
                     [...s.monsterZones, ...s.extraMonsterZones].forEach(mid => {
                         if (!mid) return;
-                        if (s.cardPropertyModifiers[mid]?.isNegated) return; // Skip if negated
+                        if (isCardNegated(s, mid)) return; // Skip if negated
                         const card = s.cards[mid];
                         if (card.cardId === 'c007') {
                             // Flame King Genghis: Special Summon Only
@@ -4586,7 +4695,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     [0, 4].forEach(pid => {
                         const mid = s.spellTrapZones[pid];
                         if (mid && s.cards[mid].cardId === 'c008') {
-                            if (s.cardPropertyModifiers[mid]?.isNegated) return; // Skip if negated
+                            if (isCardNegated(s, mid)) return; // Skip if negated
                             const name = s.cards[mid].name;
                             if (cardId !== mid) { // Another DD
                                 if (!s.turnEffectUsage[`${name}_peffect_opt`] && s.graveyard.some(g => s.cards[g].name.includes('DD'))) {
@@ -5289,8 +5398,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             // c022 (Caesar) or c023 (Executive Caesar) Requirement: Fiend (exclude c037 in current pool)
                             if ((extraDeckCardId === 'c022' || extraDeckCardId === 'c023') && c.cardId === 'c037') return false;
 
-                            // c025 (Solomon) Requirement: "DD" monsters
-                            if (extraDeckCardId === 'c025' && !isDDArchetype(c)) return false;
+                            const extraCardId = store.cards[extraDeckCardId]?.cardId;
+                            if ((extraCardId === 'c025' || extraCardId === 'c044') && !isDDArchetype(c)) return false;
 
                             console.log(`Checking ${c.name} (${c.id}): Level ${effLevel} vs Rank ${rank}. Match: ${match}`);
                             return match;
@@ -5582,7 +5691,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const candidates: string[] = [];
             [...stateAfterXyz.monsterZones, ...stateAfterXyz.extraMonsterZones].forEach(mid => {
                 if (!mid || mid === xyzCardId) return;
-                if (stateAfterXyz.cardPropertyModifiers[mid]?.isNegated) return;
+                if (isCardNegated(stateAfterXyz, mid)) return;
                 const card = stateAfterXyz.cards[mid];
                 if (card.cardId === 'c007' || card.cardId === 'c019' || card.cardId === 'c041') {
                     const optKey = `${card.name}_opt`;
@@ -5601,7 +5710,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             [0, 4].forEach(pid => {
                 const mid = stateAfterXyz.spellTrapZones[pid];
                 if (mid && stateAfterXyz.cards[mid].cardId === 'c008') {
-                    if (stateAfterXyz.cardPropertyModifiers[mid]?.isNegated) return;
+                    if (isCardNegated(stateAfterXyz, mid)) return;
                     const name = stateAfterXyz.cards[mid].name;
                     if (!stateAfterXyz.turnEffectUsage[`${name}_peffect_opt`] && stateAfterXyz.graveyard.some(g => stateAfterXyz.cards[g].name.includes('DD'))) {
                         candidates.push(mid);
@@ -5963,7 +6072,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const hoptExempt = ['c021', 'c014', 'c030', 'c032', 'c012', 'c010'];
 
                 const usage = get().turnEffectUsage[cid] || 0;
-                const isNegated = get().cardPropertyModifiers[cardId]?.isNegated;
+                const isNegated = isCardNegated(get(), cardId);
 
                 if (isNegated) {
                     get().addLog(formatLog('log_effect_negated', { card: getCardName(card, get().language) }));

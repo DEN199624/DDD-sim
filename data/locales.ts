@@ -262,6 +262,8 @@ export const LOCALE_JA: { [key: string]: string } = {
     'log_c043_effect_salvage': '{card}回収(オカルティズム効果:コスト・{cost})',
     'log_c043_negated': '灰流うららでダーク・オカルティズムを無効（コスト・{cost}）',
     'log_c043_cost': '{card}を墓地へ送る（ダーク・オカルティズム：コスト）',
+    'prompt_c044_activate': 'カリユガ：素材を1つ取り除き、墓地の「契約書」カードを魔法・罠ゾーンに置きますか？',
+    'log_c044_effect': '{card}を置く（カリユガ効果）',
     'log_no_fusion_in_ex': 'EXデッキに融合モンスターがいません',
     'log_lance_ss_destroy': '{card}を特殊召喚（{source}効果：{target}破壊）',
     'log_gryphon_eff': 'グリフォンの効果で1枚ドロー',

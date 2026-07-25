@@ -140,6 +140,7 @@ export default function Home() {
     'DDD疾風大王エグゼクティブ・アレクサンダー': '大王アレクサンダー',
     'ナイトメア・スローン': 'スローン',
     'ダーク・オカルティズム': 'オカルティズム',
+    'DDD双暁王カリ・ユガ': 'カリユガ',
   };
 
   const applyAbbreviations = (text: string): string => {
@@ -212,6 +213,10 @@ export default function Home() {
       if (a === 'c041' && b === 'c020') return 1;
       if (a === 'c041' && ['c026', 'c035'].includes(b)) return -1;
       if (['c026', 'c035'].includes(a) && b === 'c041') return 1;
+
+      // c044 (Kali Yuga) should be placed immediately to the left of c018 (Deus Machinex)
+      if (a === 'c044' && b === 'c018') return -1;
+      if (a === 'c018' && b === 'c044') return 1;
 
       if (a === 'c028' && b === 'c038') return -1;
       if (a === 'c038' && b === 'c028') return 1;
@@ -472,6 +477,22 @@ export default function Home() {
           setActiveCard(null);
           return;
         }
+      }
+
+      // Rule: Block Normal Spell activation from Hand if Kali Yuga is active on field
+      const activeCardDef = store.cards[activeId];
+      const isNormalSpell = activeCardDef && activeCardDef.type === 'SPELL' && activeCardDef.subType === 'NORMAL';
+      const isKaliYugaOnField = [...store.monsterZones, ...store.extraMonsterZones].some(id => {
+        if (!id) return false;
+        return store.cards[id]?.cardId === 'c044' && !store.cardPropertyModifiers[id]?.isNegated;
+      });
+
+      if (fromHand && isNormalSpell && isKaliYugaOnField && (zoneType === 'SPELL_TRAP_ZONE' || zoneType === 'FIELD_ZONE')) {
+        console.warn('Cannot activate Normal Spell while Kali Yuga is active.');
+        store.addLog(store.language === 'ja' ? 'カリユガの効果により通常魔法を発動できません。' : 'Cannot activate Normal Spell due to Kali Yuga.');
+        setDragState(false, null);
+        setActiveCard(null);
+        return;
       }
 
       // Rule: Block Hand to EMZ (Extra Deck monsters only)

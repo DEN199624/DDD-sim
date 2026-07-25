@@ -519,5 +519,18 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         description: 'Normal Spell. Send 1 card from Hand to GY; add 1 Level 8 Fiend monster from Deck or GY to Hand.',
         descriptionJa: 'このカード名のカードは１ターンに１枚しか発動できない。\n(1)：手札を１枚捨てて発動できる。自分のデッキ・墓地からレベル８の悪魔族モンスター１体を選んで手札に加える。',
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260701/20260701222915.png'
+    },
+    'c044': {
+        cardId: 'c044',
+        name: 'DDD Duo-Dawn King Kali Yuga',
+        nameJa: 'DDD双暁王カリ・ユガ',
+        type: 'MONSTER',
+        subType: 'XYZ/EFFECT',
+        description: 'Rank 8. 2 Level 8 "DD" monsters. [1] After this card is Xyz Summoned, negate other card effects on the field. [2] (Turn 1): Detach 1 material; Place 1 "Dark Contract" card from your GY face-up on the field.',
+        descriptionJa: 'レベル８「ＤＤ」モンスター×２\n①：このカードがＸ召喚に成功したターン、このカード以外のフィールドのカードの効果は発動できず無効化される。\n②：このカードのＸ素材を１つ取り除いて発動できる。自分の墓地から「契約書」魔法・罠カード１枚を選んで自分フィールドにセットする。',
+        attack: 3500,
+        defense: 3000,
+        rank: 8,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250314/20250314231253.png'
     }
 };
