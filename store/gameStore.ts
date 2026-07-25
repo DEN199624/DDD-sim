@@ -1989,19 +1989,22 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                         store.startSearch(
                             (card: any) => candidates.includes(card.id),
                             (targetId: string) => {
-                                const emptyIndices = store.monsterZones.map((v: string | null, i: number) => v === null ? i : -1).filter((i: number) => i !== -1);
+                                const s = useGameStore.getState();
+                                const emptyIndices = s.monsterZones.map((v: string | null, i: number) => v === null ? i : -1).filter((i: number) => i !== -1);
                                 if (emptyIndices.length > 0) {
-                                    store.startZoneSelection(formatLog('prompt_select_zone'), (t: string, i: number) => t === 'MONSTER_ZONE' && emptyIndices.includes(i), (t: string, i: number) => {
-                                        const targetName = getCardName(store.cards[targetId], store.language);
-                                        const sourceName = getCardName(store.cards[selfId], store.language);
-                                        const fromLoc = store.graveyard.includes(targetId) ? 'GRAVEYARD' : 'BANISHED';
-                                        store.moveCard(targetId, 'MONSTER_ZONE', i, fromLoc, false, true, undefined, true);
-                                        store.addLog(formatLog('log_clovis_ss', { card: targetName, source: sourceName }));
-                                        store.addTurnEffectUsage('c026');
+                                    s.startZoneSelection(formatLog('prompt_select_zone'), (t: string, i: number) => t === 'MONSTER_ZONE' && emptyIndices.includes(i), (t: string, i: number) => {
+                                        const s2 = useGameStore.getState();
+                                        const targetName = getCardName(s2.cards[targetId], s2.language);
+                                        const sourceName = getCardName(s2.cards[selfId], s2.language);
+                                        const fromLoc = s2.graveyard.includes(targetId) ? 'GRAVEYARD' : 'BANISHED';
+                                        s2.moveCard(targetId, 'MONSTER_ZONE', i, fromLoc, false, true, undefined, true);
+                                        s2.addLog(formatLog('log_clovis_ss', { card: targetName, source: sourceName }));
+                                        s2.addTurnEffectUsage('c026');
                                     });
                                 }
                                 if (emptyIndices.length === 0) {
-                                    store.addLog(formatLog('log_no_available_zones'));
+                                    const s = useGameStore.getState();
+                                    s.addLog(formatLog('log_no_available_zones'));
                                     return;
                                 }
                             },
