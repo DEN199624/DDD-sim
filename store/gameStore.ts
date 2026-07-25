@@ -6919,7 +6919,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const cardDef = store.cards[cardId];
             if (cardDef && EFFECT_LOGIC[cardDef.cardId]) {
                 const isAbyssInPZone = cardDef.cardId === 'c008' && [0, 4].some(idx => get().spellTrapZones[idx] === cardId);
-                if (cardDef.cardId !== 'c007' && cardDef.cardId !== 'c019' && cardDef.cardId !== 'c041' && !isAbyssInPZone) {
+                if (cardDef.cardId !== 'c007' && cardDef.cardId !== 'c019' && cardDef.cardId !== 'c041' && cardDef.cardId !== 'c011' && !isAbyssInPZone) {
                     store.addLog(formatLog('log_trigger_activated', { card: getCardName(cardDef, store.language) }));
                 }
                 // Execute logic as 'TRIGGER'
