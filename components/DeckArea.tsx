@@ -30,6 +30,9 @@ function SortableCard({ id, card, index, isSelected, onSelect }: SortableCardPro
     isDragging
   } = useSortable({ id });
 
+  const replayAnimations = useGameStore(state => state.replayAnimations);
+  const isAnimating = replayAnimations && replayAnimations.some(anim => anim.cardId === id);
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -41,7 +44,8 @@ function SortableCard({ id, card, index, isSelected, onSelect }: SortableCardPro
     background: '#1a1a1a',
     position: 'relative',
     cursor: 'grab',
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isAnimating ? 0 : (isDragging ? 0.5 : 1),
+    visibility: isAnimating ? 'hidden' : 'visible',
     zIndex: isDragging ? 100 : (isSelected ? 50 : 1),
     boxShadow: isSelected ? '0 0 15px rgba(255, 152, 0, 0.6)' : '0 2px 4px rgba(0,0,0,0.5)',
     flexShrink: 0,

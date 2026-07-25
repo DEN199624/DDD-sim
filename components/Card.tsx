@@ -16,7 +16,7 @@ interface CardProps {
 }
 
 export function Card({ card, isOverlay, onClickOverride, isInteractive = true, disableDrag = false, dragId }: CardProps) {
-    const { activateEffect, selectedCards, cardPropertyModifiers, extraDeck, materials, cards } = useGameStore();
+    const { activateEffect, selectedCards, cardPropertyModifiers, extraDeck, materials, cards, replayAnimations } = useGameStore();
 
     // Destructure new state objects
     const targetingState = useGameStore(state => state.targetingState);
@@ -93,9 +93,12 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         }
     };
 
+    const isAnimating = replayAnimations && replayAnimations.some(anim => anim.cardId === card.id);
+
     const style: React.CSSProperties = {
         zIndex: isDragging ? 100 : 1,
-        opacity: isDragging ? 0.3 : 1,
+        opacity: isAnimating ? 0 : (isDragging ? 0.3 : 1),
+        visibility: isAnimating ? 'hidden' : 'visible',
         cursor: isDragging ? 'grabbing' : (isValidTarget || isTriggerCandidate ? 'crosshair' : 'grab'),
         // Card Visuals
         width: '80px',
