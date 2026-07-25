@@ -56,6 +56,7 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
             const targetLevel = card.level || 0;
 
             const tuners = monsters.filter(m => {
+                if (m.subType?.includes('XYZ') || m.subType?.includes('LINK')) return false;
                 if (!m.subType?.includes('TUNER')) return false;
                 // c035 (Whitest) requires "DD" Tuner
                 if (card.cardId === 'c035' && !isDDArchetype(m)) return false;
@@ -63,6 +64,7 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
             });
 
             const nonTuners = monsters.filter(m => {
+                if (m.subType?.includes('XYZ') || m.subType?.includes('LINK')) return false;
                 if (m.subType?.includes('TUNER')) return false;
                 // c020 (Siegfried) requires "DD" non-Tuner
                 if (card.cardId === 'c020' && !isDDArchetype(m)) return false;

@@ -5083,6 +5083,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             (c) => {
                 const isField = store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id);
                 if (!isField) return false;
+                if (c.subType?.includes('XYZ') || c.subType?.includes('LINK')) return false;
                 if (!c.subType?.includes('TUNER')) return false;
 
                 // c035 Tuner Requirement: "DD" Tuner
@@ -5101,6 +5102,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             const isField = store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id);
                             if (!isField) return false;
                             if (c.id === tunerId || selectedNonTuners.includes(c.id)) return false;
+                            if (c.subType?.includes('XYZ') || c.subType?.includes('LINK')) return false;
                             if (c.subType?.includes('TUNER')) return false;
 
                             // Check Level Match (User Friendly: Only highlight valid levels that don't exceed target)
