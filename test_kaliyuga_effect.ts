@@ -161,6 +161,14 @@ function runTests() {
         // Select Gate
         (useGameStore.getState() as any).resolveSearch(gateId);
         
+        // Verify Zone Selection is open
+        const postSearchState = useGameStore.getState() as any;
+        console.log("Zone Selection Open:", postSearchState.zoneSelectionState.isOpen);
+        console.log("Zone Selection Title:", postSearchState.zoneSelectionState.title);
+
+        // Select Spell/Trap Zone 0
+        postSearchState.resolveZoneSelection('SPELL_TRAP_ZONE', 0);
+        
         // Verify Gate on field in SpellTrapZone 0, and log
         const finalState = useGameStore.getState() as any;
         console.log("Gate placed on field:", finalState.spellTrapZones[0] === gateId ? "Spell/Trap Zone 0" : "Fail");

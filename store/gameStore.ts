@@ -483,9 +483,18 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                                 (card: any) => freshGY.includes(card.id),
                                                 (selectedId: string) => {
                                                     const s2 = useGameStore.getState();
-                                                    const targetIdx = freshEmpty[0];
-                                                    s2.moveCard(selectedId, 'SPELL_TRAP_ZONE', targetIdx, 'GRAVEYARD', false, true, undefined, true);
-                                                    s2.addLog(formatLog('log_c044_effect', { card: getCardName(s2.cards[selectedId], s2.language) }));
+                                                    const currentEmpty = s2.spellTrapZones.map((v: string | null, i: number) => v === null ? i : -1).filter((i: number) => i !== -1);
+                                                    if (currentEmpty.length === 0) return;
+
+                                                    s2.startZoneSelection(
+                                                        formatLog('prompt_select_zone'),
+                                                        (t: string, i: number) => t === 'SPELL_TRAP_ZONE' && currentEmpty.includes(i),
+                                                        (t: string, i: number) => {
+                                                            const s3 = useGameStore.getState();
+                                                            s3.moveCard(selectedId, t as any, i, 'GRAVEYARD', false, true, undefined, true);
+                                                            s3.addLog(formatLog('log_c044_effect', { card: getCardName(s3.cards[selectedId], s3.language) }));
+                                                        }
+                                                    );
                                                 },
                                                 formatLog('prompt_select_card'),
                                                 freshGY
