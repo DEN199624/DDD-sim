@@ -4572,8 +4572,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const shouldSuppressLog = isTargetContractForLogSuppression && determinedFromLocation === 'HAND' && actualDestination === 'SPELL_TRAP_ZONE';
 
                 const errorLogStr = formatLog('log_error_condition');
-                const filteredLogs = state.logs.filter(l => l !== errorLogStr);
-                const logs = (skipLogging || state.isMaterialMove || skipLog || !logKey || shouldSuppressLog) ? state.logs : [combinedLog, ...filteredLogs];
+                const materialLogStr = formatLog('log_error_material');
+                const arcCrisisFailLogStr = formatLog('log_arc_crisis_fail');
+                const hoptSuffix = 'の効果は既に使用されています（ターン1回）';
+
+                const filteredLogs = state.logs.filter(l => {
+                    const isError = l === errorLogStr || l === materialLogStr || l === arcCrisisFailLogStr;
+                    const isHopt = l.includes(hoptSuffix);
+                    return !isError && !isHopt;
+                });
+                const logs = (skipLogging || state.isMaterialMove || skipLog || !logKey || shouldSuppressLog) ? filteredLogs : [combinedLog, ...filteredLogs];
 
                 return {
                     ...nextState,
@@ -4818,11 +4826,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     addLog: (message) => set((state) => {
         const errorLogStr = formatLog('log_error_condition');
+        const materialLogStr = formatLog('log_error_material');
+        const arcCrisisFailLogStr = formatLog('log_arc_crisis_fail');
         const hoptSuffix = 'の効果は既に使用されています（ターン1回）';
         const startingHandPrefix = '初動：';
         // Remove all "transient" (unnumbered) logs when adding ANY new log
         const filteredLogs = state.logs.filter(l => {
-            const isError = l === errorLogStr;
+            const isError = l === errorLogStr || l === materialLogStr || l === arcCrisisFailLogStr;
             const isHopt = l.includes(hoptSuffix);
             // Starting hand logs (startsWith '初動：') are now persistent (not filtered out)
             return !isError && !isHopt;

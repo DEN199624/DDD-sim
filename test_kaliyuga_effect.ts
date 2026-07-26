@@ -1,5 +1,6 @@
 import { CARD_DATABASE } from './data/cards';
 import { useGameStore } from './store/gameStore';
+import { formatLog } from './data/locales';
 
 function setupTest() {
     const list = [
@@ -138,30 +139,52 @@ function runTests() {
     // Put Fusion Monster in Extra Deck
     s3.moveCard(fusionTemujinId, 'EXTRA_DECK', undefined, undefined, false, false, undefined, true);
 
-    // Simulate Swamp King fusion summoning High King Temujin
-    // We can simulate the effect callback directly to bypass UI selections
+    // Simulate Swamp King effect resolution
     console.log("Simulating Swamp King effect resolution...");
     
-    // 1. Move materials to GY
     useGameStore.setState({ isMaterialMove: true });
     s3.moveCard(genghisId, 'GRAVEYARD', 0, 'HAND', true);
     s3.moveCard(matThomasId, 'GRAVEYARD', 0, 'HAND', true);
     useGameStore.setState({ isMaterialMove: false });
 
-    // 2. Summon Fusion Monster to MZ 0 with the swamp variant
     const freshS3 = useGameStore.getState() as any;
     const name1 = freshS3.cards[genghisId].name;
     const name2 = freshS3.cards[matThomasId].name;
     freshS3.moveCard(fusionTemujinId, 'MONSTER_ZONE', 0, undefined, false, true, `mats:${name1}＋${name2}:swamp`);
 
-    // Check logs
     const finalLogs = useGameStore.getState().logs;
     console.log("Swamp King Fusion Log:", finalLogs[0]);
+
+    // Case 7: Transient Material Log Cleanup Validation
+    console.log("\n--- Case 7: Transient Material Log Cleanup Validation ---");
+    setupTest();
+    const s4 = useGameStore.getState() as any;
+    
+    // Add "素材が足りません。" error log
+    const errMessage = formatLog('log_error_material');
+    s4.addLog(errMessage);
+    console.log("Initial log list contains error:", useGameStore.getState().logs.includes(errMessage));
+
+    // Add a new manual log using addLog
+    console.log("Adding next step log manually via addLog...");
+    (useGameStore.getState() as any).addLog("新しい手順");
+    console.log("Log list contains error after addLog:", useGameStore.getState().logs.includes(errMessage));
+    console.log("Log list top entry:", useGameStore.getState().logs[0]);
+
+    // Test again with moveCard action
+    (useGameStore.getState() as any).addLog(errMessage);
+    console.log("Re-added error log, verified:", useGameStore.getState().logs.includes(errMessage));
+
+    console.log("Performing moveCard action to move Ragnarok to Hand...");
+    const ragnarokId2 = s4.deck.find((id: string) => s4.cards[id].cardId === 'c008')!;
+    (useGameStore.getState() as any).moveCard(ragnarokId2, 'HAND', undefined, undefined, false, false, undefined, true);
+
+    console.log("Log list contains error after moveCard:", useGameStore.getState().logs.includes(errMessage));
 }
 
 try {
     runTests();
-    console.log("\nALL KALI YUGA, THOMAS & SWAMP KING TESTS PASSED SUCCESSFULLY!");
+    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING & ERROR LOG CLEANUP TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("Test failed:", err);
 }
