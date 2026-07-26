@@ -26,6 +26,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
     const resolveTarget = useGameStore(state => state.resolveTarget); // Need to keep resolveTarget
     const isReplaying = useGameStore(state => state.isReplaying);
     const activeEffectCardId = useGameStore(state => state.activeEffectCardId);
+    const activeReplayInstanceId = useGameStore(state => state.activeReplayInstanceId);
 
     const isTargeting = targetingState.isOpen;
     const targetFilter = targetingState.filter;
@@ -43,10 +44,11 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
 
     const isValidTarget = isTargeting && targetFilter && targetFilter(card);
     const isSelected = selectedCards && selectedCards.includes(card.id);
+    const isActiveReplayEffectCard = isReplaying && activeReplayInstanceId === card.id;
 
     // Visuals: Selected = RED, Valid Target = GREEN (unless overridden mode)
-    const borderColor = isSelected ? '#ff0000' : (isValidTarget ? (targetingMode === 'red' ? '#ff0000' : '#00ff00') : '#444');
-    const shadowColor = isSelected ? '#ff0000' : (isValidTarget ? (targetingMode === 'red' ? '#ff0000' : '#00ff00') : 'rgba(0,0,0,0.3)');
+    const borderColor = isSelected || isActiveReplayEffectCard ? '#ff0000' : (isValidTarget ? (targetingMode === 'red' ? '#ff0000' : '#00ff00') : '#444');
+    const shadowColor = isSelected || isActiveReplayEffectCard ? '#ff0000' : (isValidTarget ? (targetingMode === 'red' ? '#ff0000' : '#00ff00') : 'rgba(0,0,0,0.3)');
 
     // Stats Calculation
     const modifiers = cardPropertyModifiers[card.id];
@@ -104,7 +106,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         width: '80px',
         height: '116px',
         backgroundColor: getCardColor(card.type),
-        border: (isValidTarget || isSelected) ? `2px solid ${borderColor}` : '2px solid #444', // Highlight target
+        border: (isValidTarget || isSelected || isActiveReplayEffectCard) ? `2px solid ${borderColor}` : '2px solid #444', // Highlight target or replay active
         borderRadius: '4px',
         display: 'flex',
         flexDirection: 'column',
@@ -113,7 +115,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
         fontSize: '10px',
         padding: '4px',
         textAlign: 'center',
-        boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.5)' : ((isValidTarget || isSelected) ? `0 0 10px ${shadowColor}` : '0 2px 5px rgba(0,0,0,0.3)'),
+        boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.5)' : ((isValidTarget || isSelected || isActiveReplayEffectCard) ? `0 0 15px ${shadowColor}` : '0 2px 5px rgba(0,0,0,0.3)'),
         userSelect: 'none',
         position: 'relative', // For absolute positioning if needed, or normal flow
     };
@@ -142,6 +144,7 @@ export function Card({ card, isOverlay, onClickOverride, isInteractive = true, d
                 ${isSelected ? 'ring-4 ring-blue-500' : ''}
                 ${isDragging ? 'opacity-50' : ''}
                 ${isReplaying && activeEffectCardId === card.id ? 'cyber-glitch-active' : 'hover:scale-105'}
+                ${isActiveReplayEffectCard ? 'active-effect-glow' : ''}
             `}
             // Removed transition-all duration-200 to let framer motion handle it
             onClick={handleClick}

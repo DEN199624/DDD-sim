@@ -209,3 +209,49 @@ button {
 .log-area, .log-window-content, .graveyard-banished-preview-content {
   touch-action: pan-y; /* Allow vertical scroll in scrollable containers */
 }
+
+@keyframes red-pulse {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.4);
+    border-color: #ff0000;
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
+    border-color: #ff3333;
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.4);
+    border-color: #ff0000;
+  }
+}
+
+.active-effect-glow {
+  animation: red-pulse 1.2s infinite !important;
+  border: 2px solid #ff0000 !important;
+  z-index: 50;
+}
+
+@keyframes zone-red-pulse {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
+    border-color: rgba(255, 0, 0, 0.5);
+    background-color: rgba(255, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.8);
+    border-color: rgba(255, 0, 0, 1);
+    background-color: rgba(255, 0, 0, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
+    border-color: rgba(255, 0, 0, 0.5);
+    background-color: rgba(255, 0, 0, 0.05);
+  }
+}
+
+.active-effect-zone-glow {
+  animation: zone-red-pulse 1.2s infinite !important;
+  border: 3px solid #ff0000 !important;
+  background-color: rgba(255, 0, 0, 0.2) !important;
+  z-index: 40;
+}

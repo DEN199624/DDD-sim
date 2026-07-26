@@ -3121,6 +3121,9 @@ interface GameStore extends GameState {
     replayAnimDuration: number; // ms, derived from replaySpeed
     activeEffectCardId: string | null;
     setActiveEffectCard: (cardId: string | null) => void;
+    activeReplayCardId: string | null;
+    activeReplayInstanceId: string | null;
+    activeReplayZone: { type: ZoneType, index: number } | null;
     replay: () => void;
     stopReplay: () => void;
     originalZoneOrder: string[] | null; // For GY/Banished display reset
@@ -3364,6 +3367,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     replayAnimDuration: 200,
     cycleReplaySpeed: () => set((state) => ({ replaySpeed: state.replaySpeed >= 5 ? 1 : state.replaySpeed + 1 })),
     activeEffectCardId: null,
+    activeReplayCardId: null,
+    activeReplayInstanceId: null,
+    activeReplayZone: null,
     modalQueue: [],
     pendingChain: [],
     pendingEffects: [],
@@ -6767,7 +6773,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     setReplaySpeed: (speed) => set({ replaySpeed: speed }),
     setActiveEffectCard: (cardId) => set({ activeEffectCardId: cardId }),
-    stopReplay: () => set({ isReplaying: false, replayAnimations: null }),
+    stopReplay: () => set({
+        isReplaying: false,
+        replayAnimations: null,
+        activeReplayCardId: null,
+        activeReplayInstanceId: null,
+        activeReplayZone: null
+    }),
     replay: async (skipSnapshot = false) => {
         // Ensure the latest action is captured in history before starting replay
         if (!skipSnapshot && !get().isHistoryBatching) {
@@ -7018,6 +7030,132 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 moveGroups = tempGroups;
             }
 
+            // Detect active effect card from log
+            let matchedCardId: string | null = null;
+            let foundInstanceId: string | null = null;
+            let foundZone: any = null;
+
+            if (currentLogs.length > 0) {
+                const latestLog = currentLogs[currentLogs.length - 1];
+                
+                const getCardIdFromLog = (logText: string, cardsDb: any): string | null => {
+                    if (!logText) return null;
+                    
+                    const hasActivate = logText.includes('発動') || logText.includes('Activated') || logText.includes('effect') || logText.includes('効果') || logText.includes('置く') || logText.includes('セット');
+                    const hasNegationOrFailure = logText.includes('できません') || logText.includes('満たしていません') || logText.includes('しませんでした') || logText.includes('ないため');
+                    const isSummonLog = logText.includes('融合召喚') || logText.includes('S召喚') || logText.includes('X召喚') || logText.includes('リンク召喚') || logText.includes('特殊召喚');
+                    const isArkCrisis = logText.includes('アーククライシス') || logText.includes('c029');
+                    
+                    if (!hasActivate || hasNegationOrFailure || (isSummonLog && !logText.includes('効果')) || isArkCrisis) {
+                        return null;
+                    }
+
+                    const abbrevMap: { [key: string]: string[] } = {
+                        'c001': ['ケプラー', 'Kepler'],
+                        'c002': ['コペルニクス', 'Copernicus'],
+                        'c003': ['ニュートン', 'Newton'],
+                        'c005': ['地獄門', 'Gate'],
+                        'c006': ['魔神王', 'Swamp'],
+                        'c007': ['ジンギス', 'Genghis'],
+                        'c008': ['カイゼル・ラグナロク', 'Kaiser Ragnarok'],
+                        'c009': ['アビス・ラグナロク', 'Abyss Ragnarok'],
+                        'c010': ['トーマス', 'Thomas'],
+                        'c011': ['オルトロス', 'Orthros'],
+                        'c012': ['ケルベロス', 'Cerberus'],
+                        'c015': ['リリス', 'Lilith'],
+                        'c016': ['ナイト・ハウリング', 'Night Howling'],
+                        'c017': ['ギルガメッシュ', 'Gilgamesh'],
+                        'c018': ['デスマキナ', 'Deus Machinex'],
+                        'c019': ['大王テムジン', 'High King Temujin'],
+                        'c020': ['大王アレクサンダー', 'High King Alexander'],
+                        'c021': ['大王シーザー', 'High King Caesar'],
+                        'c022': ['テル', 'Tell'],
+                        'c023': ['シーザー', 'Caesar'],
+                        'c024': ['テムジン', 'Temujin'],
+                        'c025': ['アレクサンダー', 'Alexander'],
+                        'c026': ['クロヴィス', 'Krovis'],
+                        'c030': ['デスマキナ', 'Machinex'],
+                        'c031': ['バフォメット', 'Baphomet'],
+                        'c032': ['ネクロ・スライム', 'Necro Slime'],
+                        'c033': ['スワラル・スライム', 'Swirl Slime'],
+                        'c034': ['戦乙女', 'Witch'],
+                        'c035': ['白アーマゲドン', 'Bright Armageddon'],
+                        'c042': ['スローン', 'Throne'],
+                        'c043': ['オカルティズム', 'Occultism'],
+                        'c044': ['カリ・ユガ', 'カリユガ', 'Kali Yuga']
+                    };
+
+                    let bestCardId: string | null = null;
+                    let longestMatchLength = 0;
+
+                    Object.keys(abbrevMap).forEach(cardId => {
+                        abbrevMap[cardId].forEach(name => {
+                            if (logText.includes(name) && name.length > longestMatchLength) {
+                                longestMatchLength = name.length;
+                                bestCardId = cardId;
+                            }
+                        });
+                    });
+
+                    return bestCardId;
+                };
+
+                matchedCardId = getCardIdFromLog(latestLog, snapshot.cards || get().cards);
+                if (matchedCardId) {
+                    if (snapshot.spellTrapZones && snapshot.cards) {
+                        for (let idx = 0; idx < snapshot.spellTrapZones.length; idx++) {
+                            const id = snapshot.spellTrapZones[idx];
+                            if (id && (snapshot.cards[id]?.cardId === matchedCardId || get().cards[id]?.cardId === matchedCardId)) {
+                                foundInstanceId = id;
+                                foundZone = { type: 'SPELL_TRAP_ZONE', index: idx };
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!foundInstanceId && snapshot.monsterZones && snapshot.cards) {
+                        for (let idx = 0; idx < snapshot.monsterZones.length; idx++) {
+                            const id = snapshot.monsterZones[idx];
+                            if (id && (snapshot.cards[id]?.cardId === matchedCardId || get().cards[id]?.cardId === matchedCardId)) {
+                                foundInstanceId = id;
+                                foundZone = { type: 'MONSTER_ZONE', index: idx };
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!foundInstanceId && snapshot.extraMonsterZones && snapshot.cards) {
+                        for (let idx = 0; idx < snapshot.extraMonsterZones.length; idx++) {
+                            const id = snapshot.extraMonsterZones[idx];
+                            if (id && (snapshot.cards[id]?.cardId === matchedCardId || get().cards[id]?.cardId === matchedCardId)) {
+                                foundInstanceId = id;
+                                foundZone = { type: 'EXTRA_MONSTER_ZONE', index: idx };
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!foundInstanceId && snapshot.hand && snapshot.cards) {
+                        const inHandId = snapshot.hand.find((id) => (snapshot.cards?.[id]?.cardId === matchedCardId || get().cards[id]?.cardId === matchedCardId));
+                        if (inHandId) {
+                            foundInstanceId = inHandId;
+                        }
+                    }
+
+                    if (!foundInstanceId && snapshot.fieldZone && snapshot.cards && (snapshot.cards[snapshot.fieldZone]?.cardId === matchedCardId || get().cards[snapshot.fieldZone]?.cardId === matchedCardId)) {
+                        foundInstanceId = snapshot.fieldZone;
+                        foundZone = { type: 'FIELD_ZONE', index: 0 };
+                    }
+
+                    if (!foundInstanceId && snapshot.graveyard && snapshot.cards) {
+                        const inGraveId = snapshot.graveyard.find((id) => (snapshot.cards?.[id]?.cardId === matchedCardId || get().cards[id]?.cardId === matchedCardId));
+                        if (inGraveId) {
+                            foundInstanceId = inGraveId;
+                        }
+                    }
+                }
+            }
+
             let currentMidSnapshot = prevSnapshot ? JSON.parse(JSON.stringify(prevSnapshot)) : null;
 
             // Ensure P-scale cards are immediately moved to their P-zones in currentMidSnapshot
@@ -7039,13 +7177,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     currentMidSnapshot = getMidSnapshot(currentMidSnapshot || snapshot, snapshot, movedIds);
 
                     set({
-                        ...currentMidSnapshot,
-                        backgroundColor: currentBgColor,
-                        fieldColor: currentFieldColor,
-                        useGradient: currentUseGradient,
-                        history: history,
-                        isReplaying: true,
-                    });
+                         ...currentMidSnapshot,
+                         backgroundColor: currentBgColor,
+                         fieldColor: currentFieldColor,
+                         useGradient: currentUseGradient,
+                         history: history,
+                         isReplaying: true,
+                         activeReplayCardId: matchedCardId,
+                         activeReplayInstanceId: foundInstanceId,
+                         activeReplayZone: foundZone,
+                     });
 
                     await new Promise(resolve => setTimeout(resolve, currentAnimDuration));
                 }
@@ -7070,6 +7211,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 isBatching: false,
                 isReplaying: true,
                 replayAnimations: null, // Clear animations exactly as the new state applies
+                activeReplayCardId: matchedCardId,
+                activeReplayInstanceId: foundInstanceId,
+                activeReplayZone: foundZone,
             });
 
             prevSnapshot = snapshot;
@@ -7078,7 +7222,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
 
         // Restore final state logs fully so another replay or regular play can continue
-        set({ isReplaying: false, activeEffectCardId: null, showPendulumCutIn: false, logs: originalLogs, replayAnimations: null });
+        set({
+            isReplaying: false,
+            activeEffectCardId: null,
+            showPendulumCutIn: false,
+            logs: originalLogs,
+            replayAnimations: null,
+            activeReplayCardId: null,
+            activeReplayInstanceId: null,
+            activeReplayZone: null
+        });
     },
 
     // ... existing actions ...

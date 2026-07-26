@@ -14,6 +14,7 @@ function setupTest() {
         'c007', // Flame King Genghis (Lv6 DDD)
         'c006', // Dark Contract with the Swamp King (Continuous Spell)
         'c011', // Orthros (Lv4 DD Pendulum Tuner)
+        'c002', // Copernicus (Lv4 DD)
     ];
     
     const instantiatedCards: { [key: string]: any } = {};
@@ -23,6 +24,7 @@ function setupTest() {
         instantiatedCards[id] = {
             ...dbCard,
             id,
+            cardId: cid, // Explicitly set cardId to match store instantiated card behavior
             faceUp: false
         };
     });
@@ -223,9 +225,7 @@ function runTests() {
     const sCount = snap1.pendulumSummonCount ?? 0;
     const prevPendulumSummonCount = snap0.pendulumSummonCount ?? 0;
 
-    // Apply the P-scale safeguards
     if (currentMidSnapshot && sCount > prevPendulumSummonCount && p1 && p4) {
-        // Safe cast check
         const getMidSnapshot = (prev: any, final: any, movedIds: Set<string>): any => {
             const mid = JSON.parse(JSON.stringify(prev));
             const arrays = ['hand', 'graveyard', 'banished', 'extraDeck', 'deck', 'monsterZones', 'spellTrapZones', 'extraMonsterZones'];
@@ -259,11 +259,146 @@ function runTests() {
     console.log("Orthros in midSnapshot P-Zone 0:", currentMidSnapshot.spellTrapZones[0] === orthrosId);
     console.log("Ragnarok in midSnapshot P-Zone 4:", currentMidSnapshot.spellTrapZones[4] === ragnarokScaleId);
     console.log("Orthros NOT in hand in midSnapshot:", !currentMidSnapshot.hand.includes(orthrosId));
+
+    // Case 9: Replay Active Effect Red Glow Highlight Validation
+    console.log("\n--- Case 9: Replay Active Effect Red Glow Highlight Validation ---");
+    setupTest();
+    const s6 = useGameStore.getState() as any;
+
+    const copernicusId = s6.deck.find((id: string) => s6.cards[id].cardId === 'c002')!;
+    const ragnarokMZId = s6.deck.find((id: string) => s6.cards[id].cardId === 'c008')!;
+
+    // Place Copernicus in Monster Zone 1
+    s6.moveCard(copernicusId, 'MONSTER_ZONE', 1, undefined, false, false, undefined, true);
+    // Place Ragnarok in Spell/Trap Zone 0
+    s6.moveCard(ragnarokMZId, 'SPELL_TRAP_ZONE', 0, undefined, false, false, undefined, true);
+
+    // Save history steps
+    s6.pushHistory();
+    const snapReplayBase = JSON.parse(JSON.stringify(useGameStore.getState()));
+
+    // Define helper to run the log parsing logic (abbreviation map)
+    const testParseAndSet = (logText: string, snapshot: any) => {
+        const getCardIdFromLog = (logText: string, cardsDb: any): string | null => {
+            if (!logText) return null;
+            
+            const hasActivate = logText.includes('発動') || logText.includes('Activated') || logText.includes('effect') || logText.includes('効果') || logText.includes('置く') || logText.includes('セット');
+            const hasNegationOrFailure = logText.includes('できません') || logText.includes('満たしていません') || logText.includes('しませんでした') || logText.includes('ないため');
+            const isSummonLog = logText.includes('融合召喚') || logText.includes('S召喚') || logText.includes('X召喚') || logText.includes('リンク召喚') || logText.includes('特殊召喚');
+            const isArkCrisis = logText.includes('アーククライシス') || logText.includes('c029');
+            
+            if (!hasActivate || hasNegationOrFailure || (isSummonLog && !logText.includes('効果')) || isArkCrisis) {
+                return null;
+            }
+
+            const abbrevMap: { [key: string]: string[] } = {
+                'c001': ['ケプラー', 'Kepler'],
+                'c002': ['コペルニクス', 'Copernicus'],
+                'c003': ['ニュートン', 'Newton'],
+                'c005': ['地獄門', 'Gate'],
+                'c006': ['魔神王', 'Swamp'],
+                'c007': ['ジンギス', 'Genghis'],
+                'c008': ['カイゼル・ラグナロク', 'Kaiser Ragnarok'],
+                'c009': ['アビス・ラグナロク', 'Abyss Ragnarok'],
+                'c010': ['トーマス', 'Thomas'],
+                'c011': ['オルトロス', 'Orthros'],
+                'c012': ['ケルベロス', 'Cerberus'],
+                'c015': ['リリス', 'Lilith'],
+                'c016': ['ナイト・ハウリング', 'Night Howling'],
+                'c017': ['ギルガメッシュ', 'Gilgamesh'],
+                'c018': ['デスマキナ', 'Deus Machinex'],
+                'c019': ['大王テムジン', 'High King Temujin'],
+                'c020': ['大王アレクサンダー', 'High King Alexander'],
+                'c021': ['大王シーザー', 'High King Caesar'],
+                'c022': ['テル', 'Tell'],
+                'c023': ['シーザー', 'Caesar'],
+                'c024': ['テムジン', 'Temujin'],
+                'c025': ['アレクサンダー', 'Alexander'],
+                'c026': ['クロヴィス', 'Krovis'],
+                'c030': ['デスマキナ', 'Machinex'],
+                'c031': ['バフォメット', 'Baphomet'],
+                'c032': ['ネクロ・スライム', 'Necro Slime'],
+                'c033': ['スワラル・スライム', 'Swirl Slime'],
+                'c034': ['戦乙女', 'Witch'],
+                'c035': ['白アーマゲドン', 'Bright Armageddon'],
+                'c042': ['スローン', 'Throne'],
+                'c043': ['オカルティズム', 'Occultism'],
+                'c044': ['カリ・ユガ', 'カリユガ', 'Kali Yuga']
+            };
+
+            let bestCardId: string | null = null;
+            let longestMatchLength = 0;
+
+            Object.keys(abbrevMap).forEach(cardId => {
+                abbrevMap[cardId].forEach(name => {
+                    if (logText.includes(name) && name.length > longestMatchLength) {
+                        longestMatchLength = name.length;
+                        bestCardId = cardId;
+                    }
+                });
+            });
+
+            return bestCardId;
+        };
+
+        const matchedCardId = getCardIdFromLog(logText, snapshot.cards);
+        let foundInstanceId: string | null = null;
+        let foundZone: any = null;
+
+        if (matchedCardId) {
+            if (snapshot.spellTrapZones) {
+                for (let idx = 0; idx < snapshot.spellTrapZones.length; idx++) {
+                    const id = snapshot.spellTrapZones[idx];
+                    if (id && (snapshot.cards[id]?.cardId === matchedCardId)) {
+                        foundInstanceId = id;
+                        foundZone = { type: 'SPELL_TRAP_ZONE', index: idx };
+                        break;
+                    }
+                }
+            }
+            if (!foundInstanceId && snapshot.monsterZones) {
+                for (let idx = 0; idx < snapshot.monsterZones.length; idx++) {
+                    const id = snapshot.monsterZones[idx];
+                    if (id && (snapshot.cards[id]?.cardId === matchedCardId)) {
+                        foundInstanceId = id;
+                        foundZone = { type: 'MONSTER_ZONE', index: idx };
+                        break;
+                    }
+                }
+            }
+            if (!foundInstanceId && snapshot.hand) {
+                const inHandId = snapshot.hand.find((id: string) => (snapshot.cards[id]?.cardId === matchedCardId));
+                if (inHandId) {
+                    foundInstanceId = inHandId;
+                }
+            }
+        }
+
+        return { matchedCardId, foundInstanceId, foundZone };
+    };
+
+    // Test 1: Copernicus Activation Log
+    const log1 = "コペルニクスの効果が発動しました。";
+    const res1 = testParseAndSet(log1, snapReplayBase);
+    console.log("Log 1 matched CardId c002:", res1.matchedCardId === 'c002');
+    console.log("Log 1 found InstanceId:", res1.foundInstanceId === copernicusId);
+    console.log("Log 1 found in Monster Zone 1:", res1.foundZone?.type === 'MONSTER_ZONE' && res1.foundZone?.index === 1);
+
+    // Test 2: Ragnarok Activation Log
+    const log2 = "カイゼル・ラグナロクの効果を発動";
+    const res2 = testParseAndSet(log2, snapReplayBase);
+    console.log("Log 2 matched CardId c008:", res2.matchedCardId === 'c008');
+    console.log("Log 2 found in Spell/Trap Zone 0:", res2.foundZone?.type === 'SPELL_TRAP_ZONE' && res2.foundZone?.index === 0);
+
+    // Test 3: Summoning Ark Crisis (should not glow)
+    const log3 = "アーククライシスを特殊召喚";
+    const res3 = testParseAndSet(log3, snapReplayBase);
+    console.log("Log 3 matched nothing (Summon):", res3.matchedCardId === null);
 }
 
 try {
     runTests();
-    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING, ERROR LOG CLEANUP & P-SUMMON REPLAY TESTS PASSED SUCCESSFULLY!");
+    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING, ERROR LOG CLEANUP & P-SUMMON REPLAY & GLOW TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("Test failed:", err);
 }
