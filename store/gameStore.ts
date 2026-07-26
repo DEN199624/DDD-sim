@@ -1830,7 +1830,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                                                 const s = useGameStore.getState();
                                                 const name1 = getCardName(s.cards[mat1], s.language);
                                                 const name2 = getCardName(s.cards[mat2], s.language);
-                                                s.moveCard(fusionId, 'MONSTER_ZONE', i, undefined, false, true, `mats:${name1}＋${name2}`);
+                                                s.moveCard(fusionId, 'MONSTER_ZONE', i, undefined, false, true, `mats:${name1}＋${name2}:swamp`);
 
                                                 store.addTurnEffectUsage('c006');
                                             });
@@ -4522,18 +4522,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 let combinedLog = formatLog(logKey, logParams);
 
                 if (summonVariant && !state.isReplaying) {
-                    const materials = summonVariant.startsWith('link:') ? summonVariant.replace('link:', '') : (summonVariant.startsWith('mats:') ? summonVariant.replace('mats:', '') : null);
+                    let rawVariant = summonVariant;
+                    let suffix = '';
+                    if (rawVariant.includes(':') && !rawVariant.startsWith('link:') && !rawVariant.startsWith('mats:')) {
+                        const idx = rawVariant.lastIndexOf(':');
+                        suffix = rawVariant.substring(idx + 1);
+                        rawVariant = rawVariant.substring(0, idx);
+                    } else if ((rawVariant.startsWith('link:') || rawVariant.startsWith('mats:')) && rawVariant.split(':').length > 2) {
+                        const lastColon = rawVariant.lastIndexOf(':');
+                        suffix = rawVariant.substring(lastColon + 1);
+                        rawVariant = rawVariant.substring(0, lastColon);
+                    }
+
+                    const materials = rawVariant.startsWith('link:') ? rawVariant.replace('link:', '') : (rawVariant.startsWith('mats:') ? rawVariant.replace('mats:', '') : null);
                     if (materials) {
                         const isJA = state.language === 'ja';
-                        combinedLog += isJA ? `（${materials}）` : ` (${materials})`;
+                        let suffixStr = '';
+                        if (suffix === 'swamp') {
+                            suffixStr = isJA ? '：魔神王効果' : ': Swamp effect';
+                        }
+                        combinedLog += isJA ? `（${materials}${suffixStr}）` : ` (${materials}${suffixStr})`;
                     }
-                    if ((summonVariant === 'FUSION' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('FUSION'))) && card.cardId !== 'c029') {
+                    if ((summonVariant.startsWith('FUSION') || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('FUSION'))) && card.cardId !== 'c029') {
                         combinedLog = combinedLog.replace('を特殊召喚', 'を融合召喚');
-                    } else if (summonVariant === 'SYNCHRO' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('SYNCHRO'))) {
+                    } else if (summonVariant.startsWith('SYNCHRO') || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('SYNCHRO'))) {
                         combinedLog = combinedLog.replace('を特殊召喚', 'をS召喚');
-                    } else if (summonVariant === 'XYZ' || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('XYZ'))) {
+                    } else if (summonVariant.startsWith('XYZ') || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('XYZ'))) {
                         combinedLog = combinedLog.replace('を特殊召喚', 'をX召喚');
-                    } else if (summonVariant === 'LINK' || (summonVariant && summonVariant.toLowerCase().startsWith('link:')) || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('LINK'))) {
+                    } else if (summonVariant.startsWith('LINK') || (summonVariant && summonVariant.toLowerCase().startsWith('link:')) || (summonVariant.startsWith('mats:') && card.subType?.toUpperCase().includes('LINK'))) {
                         combinedLog = combinedLog.replace('を特殊召喚', 'をリンク召喚');
                     }
                 }
