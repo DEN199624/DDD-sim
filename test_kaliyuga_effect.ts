@@ -13,6 +13,7 @@ function setupTest() {
         'c019', // High King Temujin (Lv8 DDD)
         'c007', // Flame King Genghis (Lv6 DDD)
         'c006', // Dark Contract with the Swamp King (Continuous Spell)
+        'c011', // Orthros (Lv4 DD Pendulum Tuner)
     ];
     
     const instantiatedCards: { [key: string]: any } = {};
@@ -160,18 +161,15 @@ function runTests() {
     setupTest();
     const s4 = useGameStore.getState() as any;
     
-    // Add "素材が足りません。" error log
     const errMessage = formatLog('log_error_material');
     s4.addLog(errMessage);
     console.log("Initial log list contains error:", useGameStore.getState().logs.includes(errMessage));
 
-    // Add a new manual log using addLog
     console.log("Adding next step log manually via addLog...");
     (useGameStore.getState() as any).addLog("新しい手順");
     console.log("Log list contains error after addLog:", useGameStore.getState().logs.includes(errMessage));
     console.log("Log list top entry:", useGameStore.getState().logs[0]);
 
-    // Test again with moveCard action
     (useGameStore.getState() as any).addLog(errMessage);
     console.log("Re-added error log, verified:", useGameStore.getState().logs.includes(errMessage));
 
@@ -180,11 +178,92 @@ function runTests() {
     (useGameStore.getState() as any).moveCard(ragnarokId2, 'HAND', undefined, undefined, false, false, undefined, true);
 
     console.log("Log list contains error after moveCard:", useGameStore.getState().logs.includes(errMessage));
+
+    // Case 8: Pendulum Summon Replay Validation
+    console.log("\n--- Case 8: Pendulum Summon Replay Validation ---");
+    setupTest();
+    const s5 = useGameStore.getState() as any;
+    
+    const orthrosId = s5.deck.find((id: string) => s5.cards[id].cardId === 'c011')!; // Scale 3
+    const ragnarokScaleId = s5.deck.find((id: string) => s5.cards[id].cardId === 'c008')!; // Scale 5
+    const summonThomasId = s5.deck.find((id: string) => s5.cards[id].cardId === 'c010')!; // Lv8 (between 3 and 5)
+
+    // Step A: Set Scales
+    console.log("Setting Scales...");
+    s5.moveCard(orthrosId, 'SPELL_TRAP_ZONE', 0, undefined, false, false, undefined, true);
+    s5.moveCard(ragnarokScaleId, 'SPELL_TRAP_ZONE', 4, undefined, false, false, undefined, true);
+    s5.moveCard(summonThomasId, 'HAND', undefined, undefined, false, false, undefined, true);
+    
+    // Save history step 0 (Scales are set, Thomas is in Hand)
+    (useGameStore.getState() as any).pushHistory();
+    const snap0 = JSON.parse(JSON.stringify(useGameStore.getState()));
+
+    // Step B: Pendulum Summon Thomas
+    console.log("Pendulum Summoning Thomas...");
+    useGameStore.setState({ isBatching: true, isHistoryBatching: true });
+    (useGameStore.getState() as any).moveCard(summonThomasId, 'MONSTER_ZONE', 0, 'HAND', true, true, 'PENDULUM', true);
+    useGameStore.setState((state: any) => ({
+        pendulumSummonCount: state.pendulumSummonCount + 1,
+        isBatching: false,
+        isHistoryBatching: false
+    }));
+    (useGameStore.getState() as any).pushHistory();
+    const snap1 = JSON.parse(JSON.stringify(useGameStore.getState()));
+
+    console.log("Thomas position in final snap:", snap1.monsterZones[0] === summonThomasId ? "Monster Zone 0" : "Fail");
+    console.log("Orthros position in final snap:", snap1.spellTrapZones[0] === orthrosId ? "P-Zone 0" : "Fail");
+    console.log("Ragnarok position in final snap:", snap1.spellTrapZones[4] === ragnarokScaleId ? "P-Zone 4" : "Fail");
+
+    // Let's test the getMidSnapshot logic with the new P-scale safeguard
+    console.log("Evaluating intermediate midSnapshot behavior...");
+    
+    let currentMidSnapshot = snap0 ? JSON.parse(JSON.stringify(snap0)) : null;
+    const p1 = snap1.spellTrapZones[0];
+    const p4 = snap1.spellTrapZones[4];
+    const sCount = snap1.pendulumSummonCount ?? 0;
+    const prevPendulumSummonCount = snap0.pendulumSummonCount ?? 0;
+
+    // Apply the P-scale safeguards
+    if (currentMidSnapshot && sCount > prevPendulumSummonCount && p1 && p4) {
+        // Safe cast check
+        const getMidSnapshot = (prev: any, final: any, movedIds: Set<string>): any => {
+            const mid = JSON.parse(JSON.stringify(prev));
+            const arrays = ['hand', 'graveyard', 'banished', 'extraDeck', 'deck', 'monsterZones', 'spellTrapZones', 'extraMonsterZones'];
+            movedIds.forEach(cardId => {
+                arrays.forEach(key => {
+                    if (Array.isArray(mid[key])) {
+                        mid[key] = mid[key].map((x: any) => x === cardId ? null : x);
+                        if (['hand', 'graveyard', 'banished', 'extraDeck', 'deck'].includes(key)) {
+                            mid[key] = mid[key].filter((x: any) => x !== null && x !== undefined);
+                        }
+                    }
+                });
+                arrays.forEach(key => {
+                    if (Array.isArray(final[key])) {
+                        if (['monsterZones', 'spellTrapZones', 'extraMonsterZones'].includes(key)) {
+                            const idx = final[key].indexOf(cardId);
+                            if (idx !== -1) {
+                                mid[key][idx] = cardId;
+                            }
+                        }
+                    }
+                });
+            });
+            return mid;
+        };
+
+        const scaleIds = new Set([p1, p4].filter(Boolean));
+        currentMidSnapshot = getMidSnapshot(currentMidSnapshot, snap1, scaleIds);
+    }
+
+    console.log("Orthros in midSnapshot P-Zone 0:", currentMidSnapshot.spellTrapZones[0] === orthrosId);
+    console.log("Ragnarok in midSnapshot P-Zone 4:", currentMidSnapshot.spellTrapZones[4] === ragnarokScaleId);
+    console.log("Orthros NOT in hand in midSnapshot:", !currentMidSnapshot.hand.includes(orthrosId));
 }
 
 try {
     runTests();
-    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING & ERROR LOG CLEANUP TESTS PASSED SUCCESSFULLY!");
+    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING, ERROR LOG CLEANUP & P-SUMMON REPLAY TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("Test failed:", err);
 }

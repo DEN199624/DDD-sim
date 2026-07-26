@@ -7020,6 +7020,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             let currentMidSnapshot = prevSnapshot ? JSON.parse(JSON.stringify(prevSnapshot)) : null;
 
+            // Ensure P-scale cards are immediately moved to their P-zones in currentMidSnapshot
+            // if we are processing a Pendulum Summon, so they do not temporarily disappear or revert to hand.
+            if (currentMidSnapshot && sCount > prevPendulumSummonCount && p1 && p4) {
+                const scaleIds = new Set([p1, p4].filter(Boolean));
+                currentMidSnapshot = getMidSnapshot(currentMidSnapshot, snapshot, scaleIds);
+            }
+
             if (moveGroups.length > 0 && currentAnimDuration > 30) {
                 console.log(`[Replay Step ${i}] Detected ${moveGroups.length} move groups.`);
                 for (let g = 0; g < moveGroups.length; g++) {
