@@ -446,6 +446,42 @@ function runTests() {
     // Try to Link Summon BTP using materials on field
     s7.moveCard(btpId, 'EXTRA_MONSTER_ZONE', 0, 'EXTRA_DECK', false, false, undefined, false);
     console.log("Beyond the Pendulum link summon allowed (not blocked by Zero King):", !summonFailed);
+
+    // Case 11: Pendulum Summon No Valid Zone Log Omission Validation
+    console.log("\n--- Case 11: Pendulum Summon No Valid Zone Log Omission Validation ---");
+    setupTest();
+    const s8 = useGameStore.getState() as any;
+
+    const scaleOrthrosId = s8.deck.find((id: string) => s8.cards[id].cardId === 'c011')!; // Scale 3
+    const scaleRagnarokId = s8.deck.find((id: string) => s8.cards[id].cardId === 'c008')!; // Scale 5
+    const pSummonCopId = s8.deck.find((id: string) => s8.cards[id].cardId === 'c002')!; // Lv4 DD (between 3 and 5)
+
+    // Set Scales
+    s8.moveCard(scaleOrthrosId, 'SPELL_TRAP_ZONE', 0, undefined, false, false, undefined, true);
+    s8.moveCard(scaleRagnarokId, 'SPELL_TRAP_ZONE', 4, undefined, false, false, undefined, true);
+    s8.moveCard(pSummonCopId, 'HAND', undefined, undefined, false, false, undefined, true);
+
+    // Fill all Monster Zones to leave no empty zone (Monster Zone 0 to 4 filled with other cards)
+    const fillerCids = ['c010', 'c010', 'c019', 'c007', 'c005'];
+    fillerCids.forEach((cid, i) => {
+        const id = s8.deck.find((x: string) => s8.cards[x].cardId === cid && x !== scaleOrthrosId && x !== scaleRagnarokId && x !== pSummonCopId && !s8.monsterZones.includes(x))!;
+        if (id) {
+            s8.moveCard(id, 'MONSTER_ZONE', i, undefined, false, false, undefined, true);
+        }
+    });
+
+    console.log("Empty Monster Zones before P-Summon:", s8.monsterZones.filter((x: any) => x === null).length);
+
+    // Attempt to Pendulum Summon Copernicus (which is valid by level, but zones are fully occupied)
+    const logsBefore = [...useGameStore.getState().logs];
+    s8.resolvePendulumSelection([pSummonCopId]);
+
+    const logsAfter = useGameStore.getState().logs;
+    const addedLogs = logsAfter.slice(logsBefore.length);
+    console.log("New logs added during blocked P-Summon:", addedLogs);
+
+    const hasNoZoneError = addedLogs.some((msg: string) => msg.includes("出せるゾーンがありません") || msg.includes("no_valid_zones_for_card"));
+    console.log("Error log omitted successfully:", !hasNoZoneError);
 }
 
 try {

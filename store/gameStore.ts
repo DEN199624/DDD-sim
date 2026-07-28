@@ -6602,7 +6602,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
 
             if (validIndices.length === 0) {
-                state.addLog(formatLog('log_no_valid_zones_for_card', { card: getCardName(card, state.language) }));
                 processNext(remainingIds.slice(1), placements);
                 return;
             }
