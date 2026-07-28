@@ -2804,7 +2804,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                 formatLog('prompt_zero_king_contract'),
                 [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
                 (choice: string, isNegated?: boolean) => {
-                    if (choice === 'yes' && isNegated) { store.addTurnEffectUsage('c034'); return; }
+                    if (choice === 'yes' && isNegated) { return; }
                     if (isNegated) return;
                     if (choice === 'yes') {
                         // Handle activating from hand

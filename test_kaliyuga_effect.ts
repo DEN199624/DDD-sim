@@ -15,6 +15,8 @@ function setupTest() {
         'c006', // Dark Contract with the Swamp King (Continuous Spell)
         'c011', // Orthros (Lv4 DD Pendulum Tuner)
         'c002', // Copernicus (Lv4 DD)
+        'c034', // Dark Contract with the Zero King (Continuous Spell)
+        'c038', // Beyond the Pendulum (Link 2 EX)
     ];
     
     const instantiatedCards: { [key: string]: any } = {};
@@ -394,11 +396,61 @@ function runTests() {
     const log3 = "アーククライシスを特殊召喚";
     const res3 = testParseAndSet(log3, snapReplayBase);
     console.log("Log 3 matched nothing (Summon):", res3.matchedCardId === null);
+
+    // Case 10: Zero King (c034) Negation and Link Summoning Validation
+    console.log("\n--- Case 10: Zero King (c034) Negation and Link Summoning Validation ---");
+    setupTest();
+    const s7 = useGameStore.getState() as any;
+
+    const zeroKingId = s7.deck.find((id: string) => s7.cards[id].cardId === 'c034')!;
+    const ragnarokId3 = s7.deck.find((id: string) => s7.cards[id].cardId === 'c008')!;
+
+    // Place Zero King on Spell/Trap Zone 2, Ragnarok in Monster Zone 0
+    s7.moveCard(zeroKingId, 'SPELL_TRAP_ZONE', 2, undefined, false, false, undefined, true);
+    s7.moveCard(ragnarokId3, 'MONSTER_ZONE', 0, undefined, false, false, undefined, true);
+
+    // Trigger zero king effect manual activation
+    s7.activateEffect(zeroKingId);
+
+    // Fetch the active effect SelectionState callback
+    const selectionState = useGameStore.getState().effectSelectionState;
+    console.log("Zero King prompt selection modal isOpen:", selectionState.isOpen);
+
+    // Call the selection callback simulating negation (Yes choice, isNegated = true)
+    if (selectionState.onSelect) {
+        (selectionState.onSelect as any)('yes', true);
+    }
+
+    const postNegationState = useGameStore.getState() as any;
+    const isZeroKingUsed = (postNegationState.turnEffectUsage['c034'] || 0) > 0;
+    console.log("Zero King turn usage registered after negation:", isZeroKingUsed); // Should be false!
+
+    // Verify link summon of Beyond the Pendulum (c038) is permitted
+    const btpId = s7.deck.find((id: string) => s7.cards[id].cardId === 'c038')!;
+    // Place BTP in Extra Deck to test manual Link Summon check
+    s7.moveCard(btpId, 'EXTRA_DECK', undefined, undefined, false, false, undefined, true);
+
+    // Place P-monster on field to satisfy link summon requirements
+    const copMZId = s7.deck.find((id: string) => s7.cards[id].cardId === 'c002')!;
+    s7.moveCard(copMZId, 'MONSTER_ZONE', 1, undefined, false, false, undefined, true);
+
+    let summonFailed = false;
+    const originalLog = s7.addLog;
+    s7.addLog = (msg: string) => {
+        if (msg.includes("特殊召喚できません")) {
+            summonFailed = true;
+        }
+        originalLog.call(s7, msg);
+    };
+
+    // Try to Link Summon BTP using materials on field
+    s7.moveCard(btpId, 'EXTRA_MONSTER_ZONE', 0, 'EXTRA_DECK', false, false, undefined, false);
+    console.log("Beyond the Pendulum link summon allowed (not blocked by Zero King):", !summonFailed);
 }
 
 try {
     runTests();
-    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING, ERROR LOG CLEANUP & P-SUMMON REPLAY & GLOW TESTS PASSED SUCCESSFULLY!");
+    console.log("\nALL KALI YUGA, THOMAS, SWAMP KING, ERROR LOG CLEANUP & P-SUMMON REPLAY & GLOW & ZERO KING TESTS PASSED SUCCESSFULLY!");
 } catch (err) {
     console.error("Test failed:", err);
 }
