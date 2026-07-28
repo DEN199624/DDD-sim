@@ -6948,9 +6948,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 });
             }
 
-            // Detect Pendulum Summon
+            // Filter out P-scale cards that were already on the field from moves animation
             const p1 = sZones ? sZones[0] : null;
             const p4 = sZones ? sZones[4] : null;
+            const prevP1 = prevSnapshot?.spellTrapZones ? prevSnapshot.spellTrapZones[0] : null;
+            const prevP4 = prevSnapshot?.spellTrapZones ? prevSnapshot.spellTrapZones[4] : null;
+
+            const scaleIdsToKeep = new Set<string>();
+            if (p1 && prevP1 === p1) scaleIdsToKeep.add(p1);
+            if (p4 && prevP4 === p4) scaleIdsToKeep.add(p4);
+
+            if (scaleIdsToKeep.size > 0) {
+                moves = moves.filter(m => !scaleIdsToKeep.has(m.cardId));
+            }
+
+            // Detect Pendulum Summon
             if (sCount > prevPendulumSummonCount && p1 && p4) {
                 set({ 
                     spellTrapZones: sZones,
@@ -7157,8 +7169,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             let currentMidSnapshot = prevSnapshot ? JSON.parse(JSON.stringify(prevSnapshot)) : null;
 
-            // Ensure P-scale cards are immediately moved to their P-zones in currentMidSnapshot
-            // if we are processing a Pendulum Summon, so they do not temporarily disappear or revert to hand.
+            // Ensure P-scale cards that were already on the field are kept in P-zones
+            // so they do not temporarily disappear, revert to hand, or animate.
+            if (scaleIdsToKeep.size > 0 && currentMidSnapshot) {
+                currentMidSnapshot = getMidSnapshot(currentMidSnapshot, snapshot, scaleIdsToKeep);
+            }
+
+            // Also keep standard pendulum summon safeguard for any scale card not covered above
             if (currentMidSnapshot && sCount > prevPendulumSummonCount && p1 && p4) {
                 const scaleIds = new Set([p1, p4].filter(Boolean));
                 currentMidSnapshot = getMidSnapshot(currentMidSnapshot, snapshot, scaleIds);
