@@ -6042,7 +6042,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                                                 const s3 = get();
                                                                 const bounceName = getCardName(s3.cards[bounceId], s3.language);
                                                                 s3.moveCard(bounceId, 'HAND');
-                                                                s3.addLog(s3.language === 'ja' ? `調和ノ天救竜の効果で「${bounceName}」を手札に戻しました。` : `Returned "${bounceName}" to hand by Harmonia.`);
+                                                                s3.addLog(s3.language === 'ja' ? `${bounceName}バウンス（馬龍効果）` : `${bounceName} bounce (Baryon effect)`);
                                                                 s3.pushHistory();
                                                             },
                                                             'normal'
@@ -6087,7 +6087,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                                                         });
 
                                                                         s4.moveCard(placeMonsterId, 'SPELL_TRAP_ZONE', index, undefined, false, false, undefined, true);
-                                                                        s4.addLog(s4.language === 'ja' ? `調和ノ天救竜の効果で「${mName}」を魔法・罠ゾーン${index}に置きました。` : `Placed "${mName}" in Spell/Trap Zone ${index} by Harmonia.`);
+                                                                        s4.addLog(s4.language === 'ja' ? `${mName}を魔罠ゾーンに置く（パックビット効果）` : `Placed ${mName} in S/T Zone (Packbit effect)`);
                                                                         s4.pushHistory();
                                                                     }
                                                                 );
