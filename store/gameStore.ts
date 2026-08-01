@@ -7152,6 +7152,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
             prevPendulumSummonCount = sCount;
 
+            // Detect Opponent Hand Traps / Interruptions Cut-ins from newly added logs
+            const prevLogCount = prevSnapshot?.logCount || 0;
+            const currentStepLogCount = snapshot.logCount || 0;
+            const newlyAddedLogs = originalLogs.slice(prevLogCount, currentStepLogCount);
+
+            let cutInToTrigger: string | null = null;
+            newlyAddedLogs.forEach(l => {
+                if (l.includes("灰流うらら") || l.includes("Ash Blossom")) {
+                    cutInToTrigger = "ash";
+                } else if (l.includes("泡影") || l.includes("Impermanence")) {
+                    cutInToTrigger = "impermanence";
+                } else if (l.includes("霊王の波動") || l.includes("Dominus Impulse")) {
+                    cutInToTrigger = "impulse";
+                } else if (l.includes("ニビル") || l.includes("Nibiru")) {
+                    cutInToTrigger = "nibiru";
+                } else if (l.includes("ドロール") || l.includes("Droll")) {
+                    cutInToTrigger = "droll";
+                } else if (l.includes("ハルモニア効果") || l.includes("Harmonia effect")) {
+                    cutInToTrigger = "harmonia";
+                }
+            });
+
+            if (cutInToTrigger) {
+                if (cutInToTrigger === "ash") set({ showAshBlossomCutIn: true });
+                if (cutInToTrigger === "impermanence") set({ showInfiniteImpermanenceCutIn: true });
+                if (cutInToTrigger === "impulse") set({ showImpulseCutIn: true });
+                if (cutInToTrigger === "nibiru") set({ showNibiruCutIn: true });
+                if (cutInToTrigger === "droll") set({ showDrollCutIn: true });
+                if (cutInToTrigger === "harmonia") set({ showHarmoniaCutIn: true });
+
+                await new Promise(resolve => setTimeout(resolve, 1333));
+
+                if (cutInToTrigger === "ash") set({ showAshBlossomCutIn: false });
+                if (cutInToTrigger === "impermanence") set({ showInfiniteImpermanenceCutIn: false });
+                if (cutInToTrigger === "impulse") set({ showImpulseCutIn: false });
+                if (cutInToTrigger === "nibiru") set({ showNibiruCutIn: false });
+                if (cutInToTrigger === "droll") set({ showDrollCutIn: false });
+                if (cutInToTrigger === "harmonia") set({ showHarmoniaCutIn: false });
+            }
+
             const logCount = snapshot.logCount || 0;
             const currentLogs = originalLogs.slice(0, logCount);
 
