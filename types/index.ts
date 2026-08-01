@@ -79,6 +79,9 @@ export interface GameState {
     drollUsed: boolean;
     drollActive: boolean;
     showDrollCutIn: boolean;
+    harmoniaSimulationEnabled: boolean;
+    harmoniaUsed: boolean;
+    showHarmoniaCutIn: boolean;
     infiniteImpermanenceSimulationEnabled: boolean;
     infiniteImpermanenceUsed: boolean;
     showInfiniteImpermanenceCutIn: boolean;

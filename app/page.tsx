@@ -71,6 +71,7 @@ export default function Home() {
     cycleReplaySpeed,
     showPendulumCutIn,
     showAshBlossomCutIn,
+    showHarmoniaCutIn,
     showDrollCutIn,
     showInfiniteImpermanenceCutIn,
     showNibiruCutIn,
@@ -810,6 +811,79 @@ export default function Home() {
         <DragOverlay dropAnimation={null}>
           {activeCard ? <Card card={activeCard} isOverlay /> : null}
         </DragOverlay>
+
+        {/* Harmonia Cut-in Overlay */}
+        {showHarmoniaCutIn && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            overflow: 'hidden'
+          }}>
+            <style jsx>{`
+              @keyframes harmoniaSlashFade {
+                0% { transform: translateX(100%) skewX(-20deg); opacity: 0; }
+                15% { transform: translateX(0) skewX(-20deg); opacity: 1; }
+                85% { transform: translateX(0) skewX(-20deg); opacity: 1; }
+                100% { transform: translateX(0) skewX(-20deg); opacity: 0; }
+              }
+              @keyframes harmoniaFadeOut {
+                0% { opacity: 0; transform: scale(0.9); }
+                15% { opacity: 1; transform: scale(1); }
+                85% { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(1); }
+              }
+            `}</style>
+
+            {/* Background Slash */}
+            <div style={{
+              position: 'absolute',
+              width: '120%',
+              height: '40%',
+              background: 'linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.4), transparent)',
+              animation: 'harmoniaSlashFade 1.333s ease-in-out forwards',
+              zIndex: 1
+            }} />
+
+            {/* Harmonia Image */}
+            <div style={{
+              position: 'relative',
+              zIndex: 2,
+              animation: 'harmoniaFadeOut 1.333s ease-in-out forwards',
+              textAlign: 'center'
+            }}>
+              <img
+                src="https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260729/20260729094344.png"
+                alt="Harmonia"
+                style={{
+                  height: '300px',
+                  boxShadow: '0 0 50px rgba(0, 191, 255, 0.5)',
+                  borderRadius: '10px',
+                  border: '2px solid rgba(255, 255, 255, 0.3)'
+                }}
+              />
+              <h2 style={{
+                color: '#fff',
+                marginTop: '20px',
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                textShadow: '0 0 10px #00bfff, 0 0 20px #00bfff',
+                fontFamily: 'serif',
+                letterSpacing: '0.1em'
+              }}>
+                調和ノ天救竜
+              </h2>
+            </div>
+          </div>
+        )}
 
         {/* Ash Blossom Cut-in Overlay */}
         {showAshBlossomCutIn && (

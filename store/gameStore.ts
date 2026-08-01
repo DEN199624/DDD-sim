@@ -1767,8 +1767,8 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                         const locs = isDD ? ['HAND', 'MONSTER_ZONE', 'GRAVEYARD'] : ['HAND', 'MONSTER_ZONE'];
                         const sourceList = [
                             ...store.hand,
-                            ...store.monsterZones.filter((id: string | null): id is string => id !== null),
-                            ...store.extraMonsterZones.filter((id: string | null): id is string => id !== null),
+                            ...store.monsterZones.filter((id: string | null): id is string => id !== null && !store.cardFlags[id]?.includes('isHarmoniaPlaced')),
+                            ...store.extraMonsterZones.filter((id: string | null): id is string => id !== null && !store.cardFlags[id]?.includes('isHarmoniaPlaced')),
                             ...(isDD ? store.graveyard : [])
                         ];
                         const checkLoc = (id: string) => {
@@ -1777,7 +1777,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                             if (store.graveyard.includes(id)) return 'GRAVEYARD';
                             return null;
                         };
-                        const matFilter = (c: any) => isDDArchetype(c) && c.type === 'MONSTER';
+                        const matFilter = (c: any) => isDDArchetype(c) && c.type === 'MONSTER' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced');
 
                         store.startSearch(
                             (c: any) => {
@@ -3142,6 +3142,8 @@ interface GameStore extends GameState {
     setAshBlossomSimulationEnabled: (enabled: boolean) => void;
     drollSimulationEnabled: boolean;
     setDrollSimulationEnabled: (enabled: boolean) => void;
+    harmoniaSimulationEnabled: boolean;
+    setHarmoniaSimulationEnabled: (enabled: boolean) => void;
     infiniteImpermanenceSimulationEnabled: boolean;
     setInfiniteImpermanenceSimulationEnabled: (enabled: boolean) => void;
     showInfiniteImpermanenceCutIn: boolean;
@@ -3193,6 +3195,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     drollActive: false,
     drollSimulationEnabled: false,
     showDrollCutIn: false,
+    harmoniaSimulationEnabled: false,
+    harmoniaUsed: false,
+    showHarmoniaCutIn: false,
     infiniteImpermanenceUsed: false,
     infiniteImpermanenceSimulationEnabled: false,
     showInfiniteImpermanenceCutIn: false,
@@ -3209,6 +3214,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setUseGradient: (use) => set({ useGradient: use }),
     setAshBlossomSimulationEnabled: (enabled) => set({ ashBlossomSimulationEnabled: enabled }),
     setDrollSimulationEnabled: (enabled) => set({ drollSimulationEnabled: enabled }),
+    setHarmoniaSimulationEnabled: (enabled) => set({ harmoniaSimulationEnabled: enabled }),
     setInfiniteImpermanenceSimulationEnabled: (enabled) => set({ infiniteImpermanenceSimulationEnabled: enabled }),
     resetSummonCount: () => set({ summonCount: 0 }),
     setNibiruSimulationEnabled: (enabled: boolean) => set({ nibiruSimulationEnabled: enabled }),
@@ -3598,6 +3604,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             drollUsed: false,
             drollActive: false,
             showDrollCutIn: false,
+            harmoniaUsed: false,
+            showHarmoniaCutIn: false,
             infiniteImpermanenceUsed: false,
             showInfiniteImpermanenceCutIn: false,
             nibiruUsed: false,
@@ -3712,7 +3720,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 // Check Materials (2 DD Monsters)
                 // Valid locations for materials: Monster Zones only? Link Summon uses face-up monsters.
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter(id => id && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038');
+                    .filter(id => id && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 if (candidates.length < 2) {
                     const s = get();
@@ -3722,10 +3730,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 useGameStore.setState({ isHistoryBatching: true }); // Start batching before material selection
                 store.startTargeting(
-                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.cardId !== 'c038',
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.cardId !== 'c038' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                     (mat1) => {
                         store.startTargeting(
-                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1 && c.cardId !== 'c038',
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1 && c.cardId !== 'c038' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                             (mat2) => {
                                 const s = get();
                                 s.addLog(formatLog('log_link_material_select', { card: getCardName(store.cards[mat2], store.language) }));
@@ -3753,7 +3761,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             // Custom Rule: Can use "Gilgamesh + 1 DD Monster" (Gilgamesh treated as 2).
             if (!isSpecialSummon && !suppressTrigger && toZone === 'EXTRA_MONSTER_ZONE' && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c028') {
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038');
+                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 // Auto-detect Gilgamesh combo capability
                 const gilgameshId = candidates.find(id => store.cards[id].cardId === 'c017');
@@ -3795,6 +3803,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             const cs = useGameStore.getState();
                             const onField = cs.monsterZones.includes(c.id) || cs.extraMonsterZones.includes(c.id);
                             if (!onField) return false;
+                            if (cs.cardFlags[c.id]?.includes('isHarmoniaPlaced')) return false;
                             if (!c.name.includes('DD')) return false;
                             if (c.cardId === 'c038') return false;
                             if (selectedMaterials.includes(c.id)) return false;
@@ -3856,7 +3865,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 }
 
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter((id): id is string => id !== null);
+                    .filter((id): id is string => id !== null && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 // Need at least 2 monsters on field
                 if (candidates.length < 2) {
@@ -3874,11 +3883,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 useGameStore.setState({ isHistoryBatching: true });
                 // Select Material 1
                 store.startTargeting(
-                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)),
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                     (mat1) => {
                         // Select Material 2
                         store.startTargeting(
-                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1,
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1 && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                             (mat2) => {
                                 // Link placement validation for Main Monster Zone
                                 if (toZone === 'MONSTER_ZONE') {
@@ -4098,7 +4107,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 const currentFlags = state.cardFlags;
                 if (currentFlags[cardId]) {
                     const newFlags = { ...currentFlags };
-                    delete newFlags[cardId];
+                    const isMovingToField = ['MONSTER_ZONE', 'SPELL_TRAP_ZONE', 'FIELD_ZONE', 'EXTRA_MONSTER_ZONE'].includes(toZone);
+                    if (isMovingToField) {
+                        newFlags[cardId] = (currentFlags[cardId] || []).filter((f: string) => f === 'isHarmoniaPlaced');
+                        if (newFlags[cardId].length === 0) {
+                            delete newFlags[cardId];
+                        }
+                    } else {
+                        delete newFlags[cardId];
+                    }
                     newState.cardFlags = newFlags;
                 }
 
@@ -5184,6 +5201,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
             drollUsed: false,
             drollActive: false,
             showDrollCutIn: false,
+            harmoniaUsed: false,
+            showHarmoniaCutIn: false,
             infiniteImpermanenceUsed: false,
             showInfiniteImpermanenceCutIn: false,
             nibiruUsed: false,
@@ -5223,6 +5242,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             impulseUsed: false,
             drollUsed: false,
             drollActive: false,
+            harmoniaUsed: false,
             zeusNegationUsed: false,
         }));
     },
@@ -5243,6 +5263,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             (c) => {
                 const isField = store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id);
                 if (!isField) return false;
+                if (store.cardFlags[c.id]?.includes('isHarmoniaPlaced')) return false;
                 if (c.subType?.includes('XYZ') || c.subType?.includes('LINK')) return false;
                 if (!c.subType?.includes('TUNER')) return false;
 
@@ -5261,6 +5282,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         (c) => {
                             const isField = store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id);
                             if (!isField) return false;
+                            if (store.cardFlags[c.id]?.includes('isHarmoniaPlaced')) return false;
                             if (c.id === tunerId || selectedNonTuners.includes(c.id)) return false;
                             if (c.subType?.includes('XYZ') || c.subType?.includes('LINK')) return false;
                             if (c.subType?.includes('TUNER')) return false;
@@ -5437,6 +5459,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             const s = get();
                             const onField = s.monsterZones.includes(c.id) || s.extraMonsterZones.includes(c.id);
                             if (!onField) return false;
+                            if (s.cardFlags[c.id]?.includes('isHarmoniaPlaced')) return false;
                             if (materials.includes(c.id)) return false;
                             const effLevel = (() => {
                                 const mod = s.cardPropertyModifiers[c.id]?.level;
@@ -5824,6 +5847,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 }
             }
 
+            // Harmonia Logic
+            if (activatorId && state.harmoniaSimulationEnabled && !state.harmoniaUsed) {
+                const inMZ = state.monsterZones.includes(activatorId) || state.extraMonsterZones.includes(activatorId);
+                if (inMZ) {
+                    currentOptions.push({
+                        label: state.language === 'ja' ? '調和ノ天救竜で妨害' : 'Intervene with Harmonia',
+                        value: 'harmonia'
+                    });
+                }
+            }
+
             useGameStore.setState({
                 effectSelectionState: {
                     isOpen: true,
@@ -5955,6 +5989,137 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                 get().processUiQueue();
                             };
                             resolveImpulse();
+                            return;
+                        }
+
+                        if (val === 'harmonia') {
+                            const resolveHarmonia = () => {
+                                set({ showHarmoniaCutIn: true, harmoniaUsed: true });
+                                get().addLog(get().language === 'ja' ? '相手は調和ノ天救竜（ハルモニア）の効果を発動！' : 'Opponent activated effect of Harmonia!');
+                                get().pushHistory();
+
+                                setTimeout(() => {
+                                    set({ showHarmoniaCutIn: false });
+                                    get().pushHistory();
+                                }, 1333);
+
+                                // 1. Target 1 monster on the field to destroy
+                                const monsterFilter = (c: Card): boolean => {
+                                    const s = get();
+                                    return s.monsterZones.includes(c.id) || s.extraMonsterZones.includes(c.id);
+                                };
+
+                                get().startTargeting(
+                                    monsterFilter,
+                                    (targetId: string) => {
+                                        const s = get();
+                                        const targetName = getCardName(s.cards[targetId], s.language);
+                                        s.moveCard(targetId, 'GRAVEYARD');
+                                        s.addLog(s.language === 'ja' ? `調和ノ天救竜の効果で「${targetName}」を破壊しました。` : `Destroyed "${targetName}" by Harmonia.`);
+                                        s.pushHistory();
+
+                                        // 2. Queue the Harmonia extra effect to be resolved AFTER the main effect (e.g. search) completes
+                                        const triggerHarmoniaExtra = () => {
+                                            const s2 = get();
+                                            s2.startEffectSelection(
+                                                s2.language === 'ja' ? '調和ノ天救竜の追加効果を選択してください' : 'Select additional effect of Harmonia',
+                                                [
+                                                    { label: s2.language === 'ja' ? 'フィールドのカードを手札に戻す' : 'Return a card on the field to hand', value: 'bounce' },
+                                                    { label: s2.language === 'ja' ? 'フィールド of モンスターを魔法・罠ゾーンに置く' : 'Place a monster on the field in S/T zone', value: 'place' }
+                                                ],
+                                                (choice: string) => {
+                                                    if (choice === 'bounce') {
+                                                        const fieldCardFilter = (c: Card): boolean => {
+                                                            const s = get();
+                                                            return s.monsterZones.includes(c.id) ||
+                                                                   s.extraMonsterZones.includes(c.id) ||
+                                                                   s.spellTrapZones.includes(c.id) ||
+                                                                   s.fieldZone === c.id;
+                                                        };
+
+                                                        get().startTargeting(
+                                                            fieldCardFilter,
+                                                            (bounceId: string) => {
+                                                                const s3 = get();
+                                                                const bounceName = getCardName(s3.cards[bounceId], s3.language);
+                                                                s3.moveCard(bounceId, 'HAND');
+                                                                s3.addLog(s3.language === 'ja' ? `調和ノ天救竜の効果で「${bounceName}」を手札に戻しました。` : `Returned "${bounceName}" to hand by Harmonia.`);
+                                                                s3.pushHistory();
+                                                            },
+                                                            'normal'
+                                                        );
+                                                    } else if (choice === 'place') {
+                                                        const monsterFilter2 = (c: Card): boolean => {
+                                                            const s = get();
+                                                            return s.monsterZones.includes(c.id) || s.extraMonsterZones.includes(c.id);
+                                                        };
+
+                                                        get().startTargeting(
+                                                            monsterFilter2,
+                                                            (placeMonsterId: string) => {
+                                                                const s3 = get();
+                                                                const placeFilter = (type: any, index: any) => type === 'SPELL_TRAP_ZONE' && s3.spellTrapZones[index] === null;
+                                                                s3.startZoneSelection(
+                                                                    s3.language === 'ja' ? 'モンスターを置く魔法・罠ゾーンを選択してください' : 'Select Spell/Trap Zone to place the monster',
+                                                                    placeFilter,
+                                                                    (type: any, index: any) => {
+                                                                        const s4 = get();
+                                                                        const mName = getCardName(s4.cards[placeMonsterId], s4.language);
+                                                                        
+                                                                        // Mark the card as placed by Harmonia
+                                                                        const currentFlags = s4.cardFlags[placeMonsterId] || [];
+                                                                        const newFlags = [...currentFlags, 'isHarmoniaPlaced'];
+
+                                                                        // Set card face up in S/T zone
+                                                                        const updatedCards = {
+                                                                            ...s4.cards,
+                                                                            [placeMonsterId]: {
+                                                                                ...s4.cards[placeMonsterId],
+                                                                                faceUp: true
+                                                                            }
+                                                                        };
+
+                                                                        useGameStore.setState({
+                                                                            cards: updatedCards,
+                                                                            cardFlags: {
+                                                                                ...s4.cardFlags,
+                                                                                [placeMonsterId]: newFlags
+                                                                            }
+                                                                        });
+
+                                                                        s4.moveCard(placeMonsterId, 'SPELL_TRAP_ZONE', index, undefined, false, false, undefined, true);
+                                                                        s4.addLog(s4.language === 'ja' ? `調和ノ天救竜の効果で「${mName}」を魔法・罠ゾーン${index}に置きました。` : `Placed "${mName}" in Spell/Trap Zone ${index} by Harmonia.`);
+                                                                        s4.pushHistory();
+                                                                    }
+                                                                );
+                                                            },
+                                                            'normal'
+                                                        );
+                                                    }
+                                                }
+                                            );
+                                        };
+
+                                        // Push to the bottom of the modalQueue so it runs after current chain link
+                                        useGameStore.setState(prev => ({
+                                            modalQueue: [...prev.modalQueue, triggerHarmoniaExtra]
+                                        }));
+
+                                        // 3. Resolve the original monster effect now
+                                        onSelect(options[0].value, false);
+                                    },
+                                    'red'
+                                );
+                            };
+
+                            const negateHarmonia = () => {
+                                set({ harmoniaUsed: true }); // Activate, but negated
+                                get().pushHistory();
+                                onSelect(options[0].value, false);
+                                get().processUiQueue();
+                            };
+
+                            performZeusCheck(resolveHarmonia, negateHarmonia, '調和ノ天救竜', 'Harmonia');
                             return;
                         }
 
@@ -6300,6 +6465,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 drollSimulationEnabled: state.drollSimulationEnabled,
                 drollUsed: state.drollUsed,
                 drollActive: state.drollActive,
+                harmoniaSimulationEnabled: state.harmoniaSimulationEnabled,
+                harmoniaUsed: state.harmoniaUsed,
                 nibiruSimulationEnabled: state.nibiruSimulationEnabled,
                 nibiruUsed: state.nibiruUsed,
                 summonCount: state.summonCount,
@@ -6317,6 +6484,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     startPendulumSummon: () => {
         const state = get();
+
+        // Harmonia lock check: cannot Pendulum Summon if a monster placed by Harmonia is in the P-zones (0 or 4)
+        const harmoniaP1 = state.spellTrapZones[0] && state.cardFlags[state.spellTrapZones[0]]?.includes('isHarmoniaPlaced');
+        const harmoniaP2 = state.spellTrapZones[4] && state.cardFlags[state.spellTrapZones[4]]?.includes('isHarmoniaPlaced');
+        if (harmoniaP1 || harmoniaP2) {
+            state.addLog(state.language === 'ja' ? '調和ノ天救竜の効果でPゾーンにモンスターが置かれているため、P召喚できません。' : 'Cannot Pendulum Summon while a monster placed by Harmonia is in the P-zone.');
+            return;
+        }
 
         // Once-per-turn check: pendulumSummonCount >= pendulumSummonLimit (default 1, Zeus/Ark Crisis can increment)
         if (state.pendulumSummonCount >= state.pendulumSummonLimit) {
@@ -7242,6 +7417,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             isReplaying: false,
             activeEffectCardId: null,
             showPendulumCutIn: false,
+            showHarmoniaCutIn: false,
             logs: originalLogs,
             replayAnimations: null,
             activeReplayCardId: null,

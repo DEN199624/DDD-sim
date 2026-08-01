@@ -5,6 +5,7 @@ export function SimToggles() {
     const {
         ashBlossomSimulationEnabled, setAshBlossomSimulationEnabled,
         drollSimulationEnabled, setDrollSimulationEnabled,
+        harmoniaSimulationEnabled, setHarmoniaSimulationEnabled,
         infiniteImpermanenceSimulationEnabled, setInfiniteImpermanenceSimulationEnabled,
         nibiruSimulationEnabled, setNibiruSimulationEnabled,
         impulseSimulationEnabled, setImpulseSimulationEnabled,
@@ -54,6 +55,15 @@ export function SimToggles() {
                 title={drollSimulationEnabled ? 'ドロール&ロックバード割り込みあり' : 'ドロール&ロックバード割り込みなし'}
             >
                 {drollSimulationEnabled ? 'ドロール ON' : 'ドロール OFF'}
+            </button>
+
+            {/* Harmonia Simulation Toggle */}
+            <button
+                onClick={() => setHarmoniaSimulationEnabled(!harmoniaSimulationEnabled)}
+                style={buttonStyle(harmoniaSimulationEnabled, '#87cefa', '#b0e0e6')}
+                title={harmoniaSimulationEnabled ? '調和ノ天救竜割り込みあり' : '調和ノ天救竜割り込みなし'}
+            >
+                {harmoniaSimulationEnabled ? 'ハルモニア ON' : 'ハルモニア OFF'}
             </button>
 
             {/* Infinite Impermanence Simulation Toggle */}

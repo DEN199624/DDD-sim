@@ -532,5 +532,18 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         defense: 3000,
         rank: 8,
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20250314/20250314231253.png'
+    },
+    'c045': {
+        cardId: 'c045',
+        name: 'Harmonia, the Draco-Equiste of Harmony',
+        nameJa: '調和ノ天救竜',
+        type: 'MONSTER',
+        subType: 'EFFECT',
+        description: 'If monster effect in Monster Zone activates: Destroy 1 monster on the field. Then, resolve original effect, and finally choose to: Bounce 1 card on field OR place 1 monster on field face-up in S/T zone (that monster cannot be used as S/X/L/Fusion material. P-Summon is locked if in P-zones).',
+        descriptionJa: 'モンスターゾーン의 モンスターの效果が発動した場合に発動できる。フィールドのモンスター１体を対象として破壊する。その後、その発動した効果を処理し、さらに以下の効果から１つを選択して適用する。\n●フィールドのカード１枚を手札に戻す。\n●フィールドのモンスター１体を魔法・罠ゾーンに置く。この効果で魔法・罠ゾーンに置かれたモンスターは、融合・Ｓ・Ｘ・リンク素材にできず、Ｐゾーンに存在する間はお互いにＰ召喚できない。',
+        attack: 2500,
+        defense: 2000,
+        level: 7,
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260729/20260729094344.png'
     }
 };
