@@ -5995,7 +5995,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         if (val === 'harmonia') {
                             const resolveHarmonia = () => {
                                 set({ showHarmoniaCutIn: true, harmoniaUsed: true });
-                                get().addLog(get().language === 'ja' ? '相手は調和ノ天救竜（ハルモニア）の効果を発動！' : 'Opponent activated effect of Harmonia!');
                                 get().pushHistory();
 
                                 setTimeout(() => {
@@ -6015,7 +6014,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                         const s = get();
                                         const targetName = getCardName(s.cards[targetId], s.language);
                                         s.moveCard(targetId, 'GRAVEYARD');
-                                        s.addLog(s.language === 'ja' ? `調和ノ天救竜の効果で「${targetName}」を破壊しました。` : `Destroyed "${targetName}" by Harmonia.`);
+                                        s.addLog(s.language === 'ja' ? `${targetName}を破壊（ハルモニア効果）` : `Destroyed "${targetName}" (Harmonia effect)`);
                                         s.pushHistory();
 
                                         // 2. Queue the Harmonia extra effect to be resolved AFTER the main effect (e.g. search) completes
