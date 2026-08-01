@@ -189,7 +189,7 @@ export default function Home() {
         if (id === 'c017') {
           extraDeckList.push(id); // Add second copy
         }
-      } else if (id !== 'c_token_nibiru') {
+      } else if (id !== 'c_token_nibiru' && id !== 'c045') {
         mainDeckCandidates.push(id);
       }
     });

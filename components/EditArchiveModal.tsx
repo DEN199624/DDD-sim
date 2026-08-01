@@ -34,7 +34,7 @@ export function EditArchiveModal({ isOpen, onClose, initialSetup, explanation, n
     // Initial Setup Candidates (Main Deck Cards only)
     const mainDeckCandidates = Object.values(CARD_DATABASE).filter(c => {
         const sub = c.subType || '';
-        return !sub.includes('FUSION') && !sub.includes('SYNCHRO') && !sub.includes('XYZ') && !sub.includes('LINK');
+        return !sub.includes('FUSION') && !sub.includes('SYNCHRO') && !sub.includes('XYZ') && !sub.includes('LINK') && c.cardId !== 'c045' && c.cardId !== 'c_token_nibiru';
     }).sort((a, b) => {
         const nameA = getCardName(a as any, language);
         const nameB = getCardName(b as any, language);
