@@ -142,6 +142,7 @@ export default function Home() {
     'ナイトメア・スローン': 'スローン',
     'ダーク・オカルティズム': 'オカルティズム',
     'DDD双暁王カリ・ユガ': 'カリユガ',
+    '魔界特派員デスキャスター': 'デスキャスター',
   };
 
   const applyAbbreviations = (text: string): string => {

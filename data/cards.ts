@@ -540,10 +540,24 @@ export const CARD_DATABASE: { [key: string]: Omit<Card, 'id'> } = {
         type: 'MONSTER',
         subType: 'EFFECT',
         description: 'If monster effect in Monster Zone activates: Destroy 1 monster on the field. Then, resolve original effect, and finally choose to: Bounce 1 card on field OR place 1 monster on field face-up in S/T zone (that monster cannot be used as S/X/L/Fusion material. P-Summon is locked if in P-zones).',
-        descriptionJa: 'モンスターゾーン의 モンスターの效果が発動した場合に発動できる。フィールドのモンスター１体を対象として破壊する。その後、その発動した効果を処理し、さらに以下の効果から１つを選択して適用する。\n●フィールドのカード１枚を手札に戻す。\n●フィールドのモンスター１体を魔法・罠ゾーンに置く。この効果で魔法・罠ゾーンに置かれたモンスターは、融合・Ｓ・Ｘ・リンク素材にできず、Ｐゾーンに存在する間はお互いにＰ召喚できない。',
+        descriptionJa: 'モンスターゾーンのモンスターの効果が発動した場合に発動できる。フィールドのモンスター１体を対象として破壊する。その後、その発動した効果を処理し、さらに以下の効果から１つを選択して適用する。\n●フィールドのカード１枚を手札に戻す。\n●フィールドのモンスター１体を魔法・罠ゾーンに置く。この効果で魔法・罠ゾーンに置かれたモンスターは、融合・Ｓ・Ｘ・リンク素材にできず、Ｐゾーンに存在する間はお互いにＰ召喚できない。',
         attack: 2500,
         defense: 2000,
         level: 7,
         imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260729/20260729094344.png'
+    },
+    'c046': {
+        cardId: 'c046',
+        name: 'Muckraker From the Underworld',
+        nameJa: '魔界特派員デスキャスター',
+        type: 'MONSTER',
+        subType: 'LINK/EFFECT',
+        description: 'Link-2. 2 monsters. [1] If a monster(s) you control would be destroyed by battle or card effect, you can tribute 1 Fiend monster instead. [2] Target 1 Fiend monster in your GY; discard 1 card, and if you do, Special Summon that monster. You cannot Special Summon monsters for the rest of this turn, except Fiend monsters.',
+        descriptionJa: '効果モンスター２体\nこのカード名の(2)の効果は１ターンに１度しか使用できない。\n自分フィールドのモンスターが戦闘・効果で破壊される場合、代わりに自分フィールド of 悪魔族モンスター１体をリリースできる。\n(2)：自分の墓地の悪魔族モンスター１体を対象として発動できる。自分の手札を１枚選んで墓地へ送り、対象のモンスターを特殊召喚する。この効果の発動後、ターン終了時まで自分は悪魔族モンスターしか特殊召喚できない。',
+        attack: 1000,
+        defense: 0,
+        level: 0,
+        linkMarkers: ['LEFT', 'BOTTOM'],
+        imageUrl: 'https://cdn-ak.f.st-hatena.com/images/fotolife/D/DEYE/20260824/20260824191206.png'
     }
 };

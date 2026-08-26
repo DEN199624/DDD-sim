@@ -267,6 +267,7 @@ export const LOCALE_JA: { [key: string]: string } = {
     'log_no_fusion_in_ex': 'EXデッキに融合モンスターがいません',
     'log_lance_ss_destroy': '{card}を特殊召喚（{source}効果：{target}破壊）',
     'log_gryphon_eff': 'グリフォンの効果で1枚ドロー',
+    'log_c046_effect': '{target}蘇生（デスキャスター効果：{discard}を捨てる）',
     // UI Labels
     'ui_extra_deck': 'エクストラデッキ',
     'ui_face_up': '表側',

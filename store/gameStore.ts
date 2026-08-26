@@ -688,6 +688,83 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
             );
         }
     },
+    'c046': (store, selfId, fromLocation) => {
+        // Muckraker From the Underworld (c046) effect logic
+        if (fromLocation) return; // Manual activation only
+
+        const state = useGameStore.getState();
+        const hasHopt = (state.turnEffectUsage['c046'] || 0) > 0;
+        if (hasHopt) {
+            state.addLog(formatLog('log_hopt_used', { card: getCardName(state.cards[selfId], state.language) }));
+            return;
+        }
+
+        // Conditions: 1+ card in Hand, 1+ DD monster in GY
+        const handCandidates = state.hand;
+        const gyCandidates = state.graveyard.filter((id: string) => {
+            const c = state.cards[id];
+            return c && c.type === 'MONSTER' && c.name.includes('DD');
+        });
+
+        if (handCandidates.length < 1 || gyCandidates.length < 1) {
+            state.addLog(formatLog('log_error_condition'));
+            return;
+        }
+
+        // Start processing
+        useGameStore.setState({ isHistoryBatching: true });
+
+        // Step 1: Select DD monster from GY to Special Summon
+        store.startSearch(
+            (c: any) => c.type === 'MONSTER' && c.name.includes('DD'),
+            (targetId: string) => {
+                // Step 2: Discard 1 card from Hand
+                const s2 = useGameStore.getState();
+                s2.startTargeting(
+                    (c) => s2.hand.includes(c.id),
+                    (discardId: string) => {
+                        const s3 = useGameStore.getState();
+                        const targetCard = s3.cards[targetId];
+                        const discardCard = s3.cards[discardId];
+
+                        const targetName = getCardName(targetCard, s3.language);
+                        const discardName = getCardName(discardCard, s3.language);
+
+                        // Move discarded card to GY
+                        s3.moveCard(discardId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+
+                        // Step 3: Choose zone for Special Summon
+                        const placeFilter = (type: any, index: any) => {
+                            const currentStore = useGameStore.getState();
+                            return (type === 'MONSTER_ZONE' && currentStore.monsterZones[index] === null) ||
+                                   (type === 'EXTRA_MONSTER_ZONE' && currentStore.extraMonsterZones[index] === null);
+                        };
+
+                        s3.startZoneSelection(
+                            s3.language === 'ja' ? '特殊召喚するゾーンを選択してください' : 'Select zone to Special Summon',
+                            placeFilter,
+                            (zoneType: any, zoneIndex: any) => {
+                                const s4 = useGameStore.getState();
+                                // Special Summon target from GY to zone
+                                s4.moveCard(targetId, zoneType, zoneIndex, undefined, false, false, undefined, true);
+                                
+                                s4.addTurnEffectUsage('c046', selfId);
+
+                                // Add Log
+                                s4.addLog(formatLog('log_c046_effect', { target: targetName, discard: discardName }));
+                                
+                                useGameStore.setState({ isHistoryBatching: false });
+                                s4.pushHistory();
+                                s4.processUiQueue();
+                            }
+                        );
+                    }
+                );
+            },
+            state.language === 'ja' ? '墓地から特殊召喚するDDモンスターを選択' : 'Select DD monster to Special Summon from GY',
+            state.graveyard
+        );
+    },
     'c008': (store, selfId, fromLocation) => {
         // Abyss Ragnarok
         const isMonster = store.monsterZones.includes(selfId) || store.extraMonsterZones.includes(selfId);
@@ -2876,10 +2953,14 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                 validZones.push({ type: 'EXTRA_MONSTER_ZONE', index: 0 });
             } else if (extraMonsterZones[0] !== null) {
                 const occupant = cards[extraMonsterZones[0]!];
-                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038') {
-                    if (monsterZones[0] === null) validZones.push({ type: 'MONSTER_ZONE', index: 0 });
-                    if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
-                    if (occupant.cardId === 'c028' && monsterZones[1] === null) validZones.push({ type: 'MONSTER_ZONE', index: 1 });
+                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038' || occupant.cardId === 'c046') {
+                    if (occupant.cardId === 'c046') {
+                        if (monsterZones[1] === null) validZones.push({ type: 'MONSTER_ZONE', index: 1 });
+                    } else {
+                        if (monsterZones[0] === null) validZones.push({ type: 'MONSTER_ZONE', index: 0 });
+                        if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
+                        if (occupant.cardId === 'c028' && monsterZones[1] === null) validZones.push({ type: 'MONSTER_ZONE', index: 1 });
+                    }
                 }
             }
 
@@ -2888,10 +2969,14 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                 validZones.push({ type: 'EXTRA_MONSTER_ZONE', index: 1 });
             } else if (extraMonsterZones[1] !== null) {
                 const occupant = cards[extraMonsterZones[1]!];
-                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038') {
-                    if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
-                    if (monsterZones[4] === null) validZones.push({ type: 'MONSTER_ZONE', index: 4 });
-                    if (occupant.cardId === 'c028' && monsterZones[3] === null) validZones.push({ type: 'MONSTER_ZONE', index: 3 });
+                if (occupant.cardId === 'c017' || occupant.cardId === 'c028' || occupant.cardId === 'c038' || occupant.cardId === 'c046') {
+                    if (occupant.cardId === 'c046') {
+                        if (monsterZones[3] === null) validZones.push({ type: 'MONSTER_ZONE', index: 3 });
+                    } else {
+                        if (monsterZones[2] === null) validZones.push({ type: 'MONSTER_ZONE', index: 2 });
+                        if (monsterZones[4] === null) validZones.push({ type: 'MONSTER_ZONE', index: 4 });
+                        if (occupant.cardId === 'c028' && monsterZones[3] === null) validZones.push({ type: 'MONSTER_ZONE', index: 3 });
+                    }
                 }
             }
 
@@ -3720,7 +3805,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 // Check Materials (2 DD Monsters)
                 // Valid locations for materials: Monster Zones only? Link Summon uses face-up monsters.
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter(id => id && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
+                    .filter(id => id && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && store.cards[id].cardId !== 'c046' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 if (candidates.length < 2) {
                     const s = get();
@@ -3730,10 +3815,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                 useGameStore.setState({ isHistoryBatching: true }); // Start batching before material selection
                 store.startTargeting(
-                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.cardId !== 'c038' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.cardId !== 'c038' && c.cardId !== 'c046' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                     (mat1) => {
                         store.startTargeting(
-                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1 && c.cardId !== 'c038' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.name.includes('DD') && c.id !== mat1 && c.cardId !== 'c038' && c.cardId !== 'c046' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                             (mat2) => {
                                 const s = get();
                                 s.addLog(formatLog('log_link_material_select', { card: getCardName(store.cards[mat2], store.language) }));
@@ -3761,7 +3846,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             // Custom Rule: Can use "Gilgamesh + 1 DD Monster" (Gilgamesh treated as 2).
             if (!isSpecialSummon && !suppressTrigger && toZone === 'EXTRA_MONSTER_ZONE' && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c028') {
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
+                    .filter((id): id is string => id !== null && store.cards[id].name.includes('DD') && store.cards[id].cardId !== 'c038' && store.cards[id].cardId !== 'c046' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 // Auto-detect Gilgamesh combo capability
                 const gilgameshId = candidates.find(id => store.cards[id].cardId === 'c017');
@@ -3805,7 +3890,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             if (!onField) return false;
                             if (cs.cardFlags[c.id]?.includes('isHarmoniaPlaced')) return false;
                             if (!c.name.includes('DD')) return false;
-                            if (c.cardId === 'c038') return false;
+                            if (c.cardId === 'c038' || c.cardId === 'c046') return false;
                             if (selectedMaterials.includes(c.id)) return false;
                             return true;
                         },
@@ -3898,16 +3983,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                     if (emz0Card) {
                                         if (emz0Card.cardId === 'c017') validZones.push(0, 2);
                                         else if (emz0Card.cardId === 'c028') validZones.push(0, 1, 2);
+                                        else if (emz0Card.cardId === 'c038') validZones.push(0, 2);
+                                        else if (emz0Card.cardId === 'c046') validZones.push(1);
                                     }
                                     if (emz1Card) {
                                         if (emz1Card.cardId === 'c017') validZones.push(2, 4);
                                         else if (emz1Card.cardId === 'c028') validZones.push(2, 3, 4);
+                                        else if (emz1Card.cardId === 'c038') validZones.push(2, 4);
+                                        else if (emz1Card.cardId === 'c046') validZones.push(3);
                                     }
                                     
                                     if (!validZones.includes(toIndex)) {
                                         store.addLog(store.language === 'ja'
-                                            ? 'ビルガメスまたはゼウスのリンク先でなければメインモンスターゾーンにリンク召喚できません。'
-                                            : 'Can only Link Summon to a Main Monster Zone pointed to by Gilgamesh or Zeus.');
+                                            ? 'ビルガメス、ゼウス、またはデスキャスターのリンク先でなければメインモンスターゾーンにリンク召喚できません。'
+                                            : 'Can only Link Summon to a Main Monster Zone pointed to by Gilgamesh, Zeus, or Deathcaster.');
                                         useGameStore.setState({ isHistoryBatching: false });
                                         store.processUiQueue();
                                         return;
@@ -3934,6 +4023,82 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                 s.addLog(s.language === 'ja'
                                     ? `素材 [${materialsText}] で軌跡の魔術師をリンク召喚！`
                                     : `Link Summon Beyond the Pendulum using [${materialsText}]!`);
+
+                                get().resolveLinkSummon(cardId, [mat1, mat2], toZone, toIndex);
+                            }
+                        );
+                    }
+                );
+                return; // Abort initial move
+            }
+
+            // Intercept Manual Link Summon - Muckraker From the Underworld (c046)
+            // Requirements: 2 monsters. Link-2.
+            // Constraints: Cannot summon if "Gilgamesh", "Zero King" or "Orthros hand SS" was used this turn.
+            if (!isSpecialSummon && !suppressTrigger && (toZone === 'EXTRA_MONSTER_ZONE' || toZone === 'MONSTER_ZONE') && store.extraDeck.includes(cardId) && cardDef?.cardId === 'c046') {
+                const isGilgameshUsed = (store.turnEffectUsage['c017'] || 0) > 0;
+                const isZeroKingUsed = (store.turnEffectUsage['c034'] || 0) > 0;
+                const isOrthrosHandSSUsed = (store.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+
+                if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                    store.addLog(store.language === 'ja'
+                        ? 'ビルガメス、零王の契約書、またはオルトロスの効果を発動したターン、このカードは特殊召喚できません。'
+                        : 'Cannot Special Summon this card if the effect of Gilgamesh, Dark Contract with the Zero King, or Orthros was activated this turn.');
+                    return;
+                }
+
+                const candidates = [...store.monsterZones, ...store.extraMonsterZones]
+                    .filter((id): id is string => id !== null && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
+
+                // Need at least 2 monsters on field
+                if (candidates.length < 2) {
+                    store.addLog(store.language === 'ja' ? 'リンク素材が不足しています。' : 'Insufficient Link Materials.');
+                    return;
+                }
+
+                useGameStore.setState({ isHistoryBatching: true });
+                // Select Material 1
+                store.startTargeting(
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                    (mat1) => {
+                        // Select Material 2
+                        store.startTargeting(
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1 && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                            (mat2) => {
+                                // Link placement validation for Main Monster Zone
+                                if (toZone === 'MONSTER_ZONE') {
+                                    const emz0Card = store.extraMonsterZones[0] ? store.cards[store.extraMonsterZones[0]] : null;
+                                    const emz1Card = store.extraMonsterZones[1] ? store.cards[store.extraMonsterZones[1]] : null;
+                                    let validZones: number[] = [];
+                                    
+                                    if (emz0Card) {
+                                        if (emz0Card.cardId === 'c017') validZones.push(0, 2);
+                                        else if (emz0Card.cardId === 'c028') validZones.push(0, 1, 2);
+                                        else if (emz0Card.cardId === 'c038') validZones.push(0, 2);
+                                        else if (emz0Card.cardId === 'c046') validZones.push(1);
+                                    }
+                                    if (emz1Card) {
+                                        if (emz1Card.cardId === 'c017') validZones.push(2, 4);
+                                        else if (emz1Card.cardId === 'c028') validZones.push(2, 3, 4);
+                                        else if (emz1Card.cardId === 'c038') validZones.push(2, 4);
+                                        else if (emz1Card.cardId === 'c046') validZones.push(3);
+                                    }
+                                    
+                                    if (!validZones.includes(toIndex)) {
+                                        store.addLog(store.language === 'ja'
+                                            ? 'ビルガメス、ゼウス、またはデスキャスターのリンク先でなければメインモンスターゾーンにリンク召喚できません。'
+                                            : 'Can only Link Summon to a Main Monster Zone pointed to by Gilgamesh, Zeus, or Deathcaster.');
+                                        useGameStore.setState({ isHistoryBatching: false });
+                                        store.processUiQueue();
+                                        return;
+                                    }
+                                }
+
+                                const s = get();
+                                const materialsText = [mat1, mat2].map(id => getCardName(s.cards[id], s.language)).join(', ');
+                                s.addLog(s.language === 'ja'
+                                    ? `素材 [${materialsText}] で魔界特派員デスキャスターをリンク召喚！`
+                                    : `Link Summon Muckraker From the Underworld using [${materialsText}]!`);
 
                                 get().resolveLinkSummon(cardId, [mat1, mat2], toZone, toIndex);
                             }
