@@ -3949,7 +3949,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 }
 
                 const candidates = [...store.monsterZones, ...store.extraMonsterZones]
-                    .filter((id): id is string => id !== null && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
+                    .filter((id): id is string => id !== null && store.cards[id].cardId !== 'c046' && !store.cardFlags[id]?.includes('isHarmoniaPlaced'));
 
                 // Need at least 2 monsters on field
                 if (candidates.length < 2) {
@@ -3967,11 +3967,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 useGameStore.setState({ isHistoryBatching: true });
                 // Select Material 1
                 store.startTargeting(
-                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                    (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.cardId !== 'c046' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                     (mat1) => {
                         // Select Material 2
                         store.startTargeting(
-                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1 && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
+                            (c) => (store.monsterZones.includes(c.id) || store.extraMonsterZones.includes(c.id)) && c.id !== mat1 && c.cardId !== 'c046' && !store.cardFlags[c.id]?.includes('isHarmoniaPlaced'),
                             (mat2) => {
                                 // Link placement validation for Main Monster Zone
                                 if (toZone === 'MONSTER_ZONE') {
