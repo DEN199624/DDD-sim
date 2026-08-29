@@ -7302,6 +7302,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const sZones = snapshot.spellTrapZones;
             const sCount = snapshot.pendulumSummonCount ?? 0;
 
+            // Sync logs immediately at the start of the step to ensure synchronicity with animations and cut-ins
+            const logCount = snapshot.logCount || 0;
+            const currentLogs = originalLogs.slice(0, logCount);
+            set({ logs: currentLogs, currentStepIndex: i });
+
             // --- Detect moved cards FIRST (uses current DOM which hasn't been modified yet) ---
             let moves: import('@/components/ReplayCardAnimationOverlay').ReplayCardMove[] = [];
 
@@ -7396,9 +7401,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (cutInToTrigger === "droll") set({ showDrollCutIn: false });
                 if (cutInToTrigger === "harmonia") set({ showHarmoniaCutIn: false });
             }
-
-            const logCount = snapshot.logCount || 0;
-            const currentLogs = originalLogs.slice(0, logCount);
 
             // Dynamically calculate speed based on current state setting
             const currentSpeed = get().replaySpeed || 1;
@@ -7635,8 +7637,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 fieldColor: currentFieldColor,
                 useGradient: currentUseGradient,
                 history: history, // Preserve history array in state so it doesn't get lost
-                logs: currentLogs,
-                currentStepIndex: i,
                 searchState: { isOpen: false, filter: null, onSelect: null, prompt: undefined, source: undefined },
                 effectSelectionState: { isOpen: false, title: '', options: [], onSelect: null },
                 targetingState: { isOpen: false, filter: null, onSelect: null, mode: 'normal' },
