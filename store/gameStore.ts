@@ -736,8 +736,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                         // Step 3: Choose zone for Special Summon
                         const placeFilter = (type: any, index: any) => {
                             const currentStore = useGameStore.getState();
-                            return (type === 'MONSTER_ZONE' && currentStore.monsterZones[index] === null) ||
-                                   (type === 'EXTRA_MONSTER_ZONE' && currentStore.extraMonsterZones[index] === null);
+                            return type === 'MONSTER_ZONE' && currentStore.monsterZones[index] === null;
                         };
 
                         s3.startZoneSelection(
