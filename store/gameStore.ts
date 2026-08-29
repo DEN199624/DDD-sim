@@ -7528,15 +7528,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         'c035': ['白アーマゲドン', 'Bright Armageddon'],
                         'c042': ['スローン', 'Throne'],
                         'c043': ['オカルティズム', 'Occultism'],
-                        'c044': ['カリ・ユガ', 'カリユガ', 'Kali Yuga']
+                        'c044': ['カリ・ユガ', 'カリユガ', 'Kali Yuga'],
+                        'c046': ['デスキャスター', 'Muckraker']
                     };
 
+                    // Priority 1: Check if there is an activator card mentioned within parentheses with "effect" or "効果"
+                    const parenRegex = /[（\(]([^）\)]*?効果|[^）\)]*?effect)[）\)]/i;
+                    const parenMatch = logText.match(parenRegex);
+                    if (parenMatch) {
+                        const insideParen = parenMatch[1];
+                        let matchedId: string | null = null;
+                        let maxLen = 0;
+                        Object.keys(abbrevMap).forEach(cardId => {
+                            abbrevMap[cardId].forEach(name => {
+                                if (insideParen.includes(name) && name.length > maxLen) {
+                                    maxLen = name.length;
+                                    matchedId = cardId;
+                                }
+                            });
+                        });
+                        if (matchedId) return matchedId;
+                    }
+
+                    // Remove parentheses content completely before normal matching to avoid matching search targets/costs
+                    let cleanText = logText.replace(/[（\(][^）\)]*?[）\)]/g, '');
+
+                    // Priority 2: Look for "[CardName]の効果を発動" or "[CardName]効果" specifically in the cleaned text
                     let bestCardId: string | null = null;
                     let longestMatchLength = 0;
 
                     Object.keys(abbrevMap).forEach(cardId => {
                         abbrevMap[cardId].forEach(name => {
-                            if (logText.includes(name) && name.length > longestMatchLength) {
+                            const effectKeywords = [`${name}効果`, `${name}の効果`, `${name} effect`, `effect of ${name}`, `effect of "${name}"`];
+                            const isSpecificEffect = effectKeywords.some(kw => cleanText.includes(kw));
+                            if (isSpecificEffect && name.length > longestMatchLength) {
+                                longestMatchLength = name.length;
+                                bestCardId = cardId;
+                            }
+                        });
+                    });
+
+                    if (bestCardId) return bestCardId;
+
+                    // Priority 3: Fallback to longest match on cleaned text
+                    Object.keys(abbrevMap).forEach(cardId => {
+                        abbrevMap[cardId].forEach(name => {
+                            if (cleanText.includes(name) && name.length > longestMatchLength) {
                                 longestMatchLength = name.length;
                                 bestCardId = cardId;
                             }
