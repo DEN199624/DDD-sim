@@ -7177,6 +7177,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         set({ isReplaying: true, logs: [], currentStepIndex: -1 });
 
+        // Helper: wait specified ms but stop immediately if replay is cancelled
+        const waitReplay = (ms: number) => {
+            const start = Date.now();
+            return new Promise<void>((resolve) => {
+                const interval = setInterval(() => {
+                    const state = useGameStore.getState();
+                    if (!state.isReplaying || Date.now() - start >= ms) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 30);
+            });
+        };
+
         // Helper: get zone id string from snapshot state for a given card
         const getZoneIdOfCard = (
             snap: Partial<any>,
@@ -7357,7 +7371,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 moves = moves.filter(m => !scaleIds.includes(m.cardId));
 
                 set({ showPendulumCutIn: true });
-                await new Promise(resolve => setTimeout(resolve, 1333));
+                await waitReplay(1333);
                 set({ showPendulumCutIn: false });
             }
             prevPendulumSummonCount = sCount;
@@ -7392,7 +7406,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 if (cutInToTrigger === "droll") set({ showDrollCutIn: true });
                 if (cutInToTrigger === "harmonia") set({ showHarmoniaCutIn: true });
 
-                await new Promise(resolve => setTimeout(resolve, 1333));
+                await waitReplay(1333);
 
                 if (cutInToTrigger === "ash") set({ showAshBlossomCutIn: false });
                 if (cutInToTrigger === "impermanence") set({ showInfiniteImpermanenceCutIn: false });
@@ -7625,7 +7639,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                          activeReplayZone: foundZone,
                      });
 
-                    await new Promise(resolve => setTimeout(resolve, currentAnimDuration));
+                    await waitReplay(currentAnimDuration);
                 }
             } else if (moves.length === 0) {
                 console.log(`[Replay Step ${i}] No moves detected.`);
@@ -7653,7 +7667,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
             prevSnapshot = snapshot;
 
-            await new Promise(resolve => setTimeout(resolve, currentPauseDuration));
+            await waitReplay(currentPauseDuration);
         }
 
         // Restore final state logs fully so another replay or regular play can continue
