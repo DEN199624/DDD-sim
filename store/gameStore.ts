@@ -4833,7 +4833,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             if (edCard.cardId === 'c030' && (s.turnEffectUsage['c030_ss_reaction'] || 0) < 1) {
                                 const logic: any = EFFECT_LOGIC;
                                 if (logic['c030_reaction']) {
-                                    logic['c030_reaction'](s, edId);
+                                    const executeTrigger = () => {
+                                        const freshState = useGameStore.getState();
+                                        if ((freshState.turnEffectUsage['c030_ss_reaction'] || 0) < 1) {
+                                            logic['c030_reaction'](freshState, edId);
+                                        }
+                                    };
+                                    
+                                    if (s.isBatching) {
+                                        useGameStore.setState(prev => ({
+                                            pendingEffects: [...prev.pendingEffects, executeTrigger]
+                                        }));
+                                    } else {
+                                        executeTrigger();
+                                    }
                                 }
                             }
                         });
@@ -4841,19 +4854,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
                 }
                 // Ark Crisis P-Zone Placement
                 if (isArkCrisisDestroyed) {
-                    const pZones = [0, 4];
-                    const availablePZone = pZones.find(idx => s.spellTrapZones[idx] === null);
-                    if (availablePZone !== undefined) {
-                        s.startEffectSelection(
-                            formatLog('prompt_activate_effect', { name: getCardName(movedCard, s.language) }),
-                            [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
-                            (choice) => {
-                                if (choice === 'yes') {
-                                    get().moveCard(cardId, 'SPELL_TRAP_ZONE', availablePZone);
-                                    get().addLog(formatLog('log_place_card', { card: getCardName(movedCard, s.language) }));
+                    const executeArkCrisis = () => {
+                        const freshState = useGameStore.getState();
+                        const pZones = [0, 4];
+                        const availablePZone = pZones.find(idx => freshState.spellTrapZones[idx] === null);
+                        if (availablePZone !== undefined) {
+                            freshState.startEffectSelection(
+                                formatLog('prompt_activate_effect', { name: getCardName(movedCard, freshState.language) }),
+                                [{ label: formatLog('ui_yes'), value: 'yes' }, { label: formatLog('ui_no'), value: 'no' }],
+                                (choice) => {
+                                    if (choice === 'yes') {
+                                        get().moveCard(cardId, 'SPELL_TRAP_ZONE', availablePZone);
+                                        get().addLog(formatLog('log_place_card', { card: getCardName(movedCard, freshState.language) }));
+                                    }
                                 }
-                            }
-                        );
+                            );
+                        }
+                    };
+
+                    if (s.isBatching) {
+                        useGameStore.setState(prev => ({
+                            pendingEffects: [...prev.pendingEffects, executeArkCrisis]
+                        }));
+                    } else {
+                        executeArkCrisis();
                     }
                 }
             }
