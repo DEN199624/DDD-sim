@@ -711,57 +711,83 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
             return;
         }
 
-        // Start processing
-        useGameStore.setState({ isHistoryBatching: true });
-
-        // Step 1: Select DD monster from GY to Special Summon
-        store.startSearch(
-            (c: any) => c.type === 'MONSTER' && c.name.includes('DD'),
-            (targetId: string) => {
-                // Step 2: Discard 1 card from Hand
-                const s2 = useGameStore.getState();
-                s2.startTargeting(
-                    (c) => s2.hand.includes(c.id),
-                    (discardId: string) => {
-                        const s3 = useGameStore.getState();
-                        const targetCard = s3.cards[targetId];
-                        const discardCard = s3.cards[discardId];
-
-                        const targetName = getCardName(targetCard, s3.language);
-                        const discardName = getCardName(discardCard, s3.language);
-
-                        // Move discarded card to GY
-                        s3.moveCard(discardId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
-
-                        // Step 3: Choose zone for Special Summon
-                        const placeFilter = (type: any, index: any) => {
-                            const currentStore = useGameStore.getState();
-                            return type === 'MONSTER_ZONE' && currentStore.monsterZones[index] === null;
-                        };
-
-                        s3.startZoneSelection(
-                            s3.language === 'ja' ? '特殊召喚するゾーンを選択してください' : 'Select zone to Special Summon',
-                            placeFilter,
-                            (zoneType: any, zoneIndex: any) => {
-                                const s4 = useGameStore.getState();
-                                // Special Summon target from GY to zone
-                                s4.moveCard(targetId, zoneType, zoneIndex, undefined, false, false, undefined, true);
-                                
-                                s4.addTurnEffectUsage('c046', selfId);
-
-                                // Add Log
-                                s4.addLog(formatLog('log_c046_effect', { target: targetName, discard: discardName }));
-                                
-                                useGameStore.setState({ isHistoryBatching: false });
-                                s4.pushHistory();
-                                s4.processUiQueue();
-                            }
-                        );
+        // Confirm Activation to allow Opponent Hand Trap Interruptions (e.g. Dominus Impulse)
+        store.startEffectSelection(
+            store.language === 'ja'
+                ? '「魔界特派員デスキャスター」の効果を発動し、墓地の「DD」モンスターを特殊召喚しますか？'
+                : 'Activate "Muckraker From the Underworld" to Special Summon a "DD" monster from GY?',
+            [{ label: store.language === 'ja' ? 'はい' : 'Yes', value: 'yes' }, { label: store.language === 'ja' ? 'いいえ' : 'No', value: 'no' }],
+            (choice: string, isNegated?: boolean) => {
+                if (choice === 'yes') {
+                    if (isNegated) {
+                        useGameStore.setState({ isBatching: true });
+                        try {
+                            const sTemp = useGameStore.getState();
+                            sTemp.addTurnEffectUsage('c046', selfId);
+                        } finally {
+                            useGameStore.setState({ isBatching: false });
+                            useGameStore.getState().processUiQueue();
+                        }
+                        return;
                     }
-                );
+
+                    useGameStore.setState({ isHistoryBatching: true });
+
+                    // Step 1: Select DD monster from GY to Special Summon
+                    const sSearch = useGameStore.getState();
+                    sSearch.startSearch(
+                        (c: any) => c.type === 'MONSTER' && c.name.includes('DD'),
+                        (targetId: string) => {
+                            // Step 2: Discard 1 card from Hand
+                            const s2 = useGameStore.getState();
+                            s2.startTargeting(
+                                (c) => s2.hand.includes(c.id),
+                                (discardId: string) => {
+                                    const s3 = useGameStore.getState();
+                                    const targetCard = s3.cards[targetId];
+                                    const discardCard = s3.cards[discardId];
+
+                                    const targetName = getCardName(targetCard, s3.language);
+                                    const discardName = getCardName(discardCard, s3.language);
+
+                                    // Move discarded card to GY
+                                    s3.moveCard(discardId, 'GRAVEYARD', undefined, undefined, false, false, undefined, true);
+
+                                    // Step 3: Choose zone for Special Summon
+                                    const placeFilter = (type: any, index: any) => {
+                                        const currentStore = useGameStore.getState();
+                                        return type === 'MONSTER_ZONE' && currentStore.monsterZones[index] === null;
+                                    };
+
+                                    s3.startZoneSelection(
+                                        s3.language === 'ja' ? '特殊召喚するゾーンを選択してください' : 'Select zone to Special Summon',
+                                        placeFilter,
+                                        (zoneType: any, zoneIndex: any) => {
+                                            const s4 = useGameStore.getState();
+                                            // Special Summon target from GY to zone
+                                            s4.moveCard(targetId, zoneType, zoneIndex, undefined, false, false, undefined, true);
+                                            
+                                            s4.addTurnEffectUsage('c046', selfId);
+
+                                            // Add Log
+                                            s4.addLog(formatLog('log_c046_effect', { target: targetName, discard: discardName }));
+                                            
+                                            useGameStore.setState({ isHistoryBatching: false });
+                                            s4.pushHistory();
+                                            s4.processUiQueue();
+                                        }
+                                    );
+                                },
+                                s2.language === 'ja' ? '手札から墓地へ送るカードを選択してください' : 'Select card from Hand to discard'
+                            );
+                        },
+                        sSearch.language === 'ja' ? '特殊召喚する「DD」モンスターを選択してください' : 'Select "DD" monster to Special Summon',
+                        gyCandidates
+                    );
+                }
             },
-            state.language === 'ja' ? '墓地から特殊召喚するDDモンスターを選択' : 'Select DD monster to Special Summon from GY',
-            state.graveyard
+            false,
+            selfId
         );
     },
     'c008': (store, selfId, fromLocation) => {
@@ -5995,7 +6021,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             if (activatorId && state.impulseSimulationEnabled && !state.impulseUsed) {
                 const activatorCard = state.cards[activatorId];
                 if (activatorCard) {
-                    const impulseNames = ['スケール', 'アビス', 'グリフォン', 'オルトロス', 'カウント', 'ネクロ', '魔神王', '零王', 'ワンフォ', 'テムジン', '大王テムジン', 'アルフレッド', 'クロヴィス', 'ゼロ・マキナ'];
+                    const impulseNames = ['スケール', 'アビス', 'グリフォン', 'オルトロス', 'カウント', 'ネクロ', '魔神王', '零王', 'ワンフォ', 'テムジン', '大王テムジン', 'アルフレッド', 'クロヴィス', 'ゼロ・マキナ', 'デスキャスター', 'Muckraker'];
                     const nameJa = activatorCard.nameJa || '';
                     const name = activatorCard.name || '';
                     
