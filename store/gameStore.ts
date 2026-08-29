@@ -4510,7 +4510,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         setTimeout(() => {
                             useGameStore.setState({ drollActive: true, drollUsed: true, showDrollCutIn: true });
                             get().addLog(formatLog('log_droll_triggered'));
-                            get().pushHistory();
+                            get().pushHistory(true);
                             setTimeout(() => {
                                 useGameStore.setState({ showDrollCutIn: false });
                             }, 1333);
@@ -6094,17 +6094,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
                             const resolveAshBlossom = () => {
                                 set({ ashBlossomUsed: true, showAshBlossomCutIn: true });
                                 get().addLog(formatLog('log_ash_blossom_negated'));
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 setTimeout(() => {
                                     set({ showAshBlossomCutIn: false });
-                                    get().pushHistory();
+                                    get().pushHistory(true);
                                 }, 1333);
                                 onSelect(options[0].value, true);
                                 get().processUiQueue();
                             };
                             const negateAshBlossom = () => {
                                 set({ ashBlossomUsed: true }); // Activate, but negated
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 onSelect(options[0].value, false);
                                 get().processUiQueue();
                             };
@@ -6117,17 +6117,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                 set({ showInfiniteImpermanenceCutIn: true, infiniteImpermanenceUsed: true });
                                 const activatorCard = state.cards[activatorId!];
                                 get().addLog(formatLog('log_infinite_impermanence_negated', { card: getCardName(activatorCard, state.language) }));
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 setTimeout(() => {
                                     set({ showInfiniteImpermanenceCutIn: false });
-                                    get().pushHistory();
+                                    get().pushHistory(true);
                                 }, 1333);
                                 onSelect(options[0].value, true);
                                 get().processUiQueue();
                             };
                             const negateImpermanence = () => {
                                 set({ infiniteImpermanenceUsed: true }); // Activate, but negated
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 onSelect(options[0].value, false);
                                 get().processUiQueue();
                             };
@@ -6140,10 +6140,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                 set({ showImpulseCutIn: true, impulseUsed: true });
                                 const activatorCard = state.cards[activatorId!];
                                 get().addLog(formatLog('log_impulse_negated', { card: getCardName(activatorCard, state.language) }));
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 setTimeout(() => {
                                     set({ showImpulseCutIn: false });
-                                    get().pushHistory();
+                                    get().pushHistory(true);
                                 }, 1333);
                                 onSelect(options[0].value, true);
                                 if (state.infiniteImpermanenceUsed && activatorId) {
@@ -6159,11 +6159,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
                         if (val === 'harmonia') {
                             const resolveHarmonia = () => {
                                 set({ showHarmoniaCutIn: true, harmoniaUsed: true });
-                                get().pushHistory();
+                                get().pushHistory(true);
 
                                 setTimeout(() => {
                                     set({ showHarmoniaCutIn: false });
-                                    get().pushHistory();
+                                    get().pushHistory(true);
                                 }, 1333);
 
                                 // 1. Target 1 monster on the field to destroy
@@ -6179,7 +6179,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                         const targetName = getCardName(s.cards[targetId], s.language);
                                         s.moveCard(targetId, 'GRAVEYARD');
                                         s.addLog(s.language === 'ja' ? `${targetName}を破壊（ハルモニア効果）` : `Destroyed "${targetName}" (Harmonia effect)`);
-                                        s.pushHistory();
+                                        s.pushHistory(true);
 
                                         // 2. Queue the Harmonia extra effect to be resolved AFTER the main effect (e.g. search) completes
                                         const triggerHarmoniaExtra = () => {
@@ -6207,7 +6207,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                                                                 const bounceName = getCardName(s3.cards[bounceId], s3.language);
                                                                 s3.moveCard(bounceId, 'HAND');
                                                                 s3.addLog(s3.language === 'ja' ? `${bounceName}バウンス（馬龍効果）` : `${bounceName} bounce (Baryon effect)`);
-                                                                s3.pushHistory();
+                                                                s3.pushHistory(true);
                                                             },
                                                             'normal'
                                                         );
@@ -6252,7 +6252,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                                                                         s4.moveCard(placeMonsterId, 'SPELL_TRAP_ZONE', index, undefined, false, false, undefined, true);
                                                                         s4.addLog(s4.language === 'ja' ? `${mName}を魔罠ゾーンに置く（パックビット効果）` : `Placed ${mName} in S/T Zone (Packbit effect)`);
-                                                                        s4.pushHistory();
+                                                                        s4.pushHistory(true);
                                                                     }
                                                                 );
                                                             },
@@ -6277,7 +6277,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
                             const negateHarmonia = () => {
                                 set({ harmoniaUsed: true }); // Activate, but negated
-                                get().pushHistory();
+                                get().pushHistory(true);
                                 onSelect(options[0].value, false);
                                 get().processUiQueue();
                             };
@@ -6575,10 +6575,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
     },
 
-    pushHistory: () => {
+    pushHistory: (force = false) => {
         const state = get();
-        // If batching history, do not push yet.
-        if (
+        // If batching history, do not push yet unless forced.
+        if (!force && (
             state.isHistoryBatching ||
             state.isBatching ||
             state.isEffectActivated ||
@@ -6587,7 +6587,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             state.searchState.isOpen ||
             state.zoneSelectionState.isOpen ||
             state.isPendulumSummoning
-        ) return;
+        )) return;
 
         set((state) => {
             // Snapshot
