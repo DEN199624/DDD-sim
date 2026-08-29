@@ -981,7 +981,7 @@ export const EFFECT_LOGIC: { [cardId: string]: (store: any, selfId: string, from
                             handDD
                         );
                     }
-                }, true);
+                }, false);
             }
             return;
         }
