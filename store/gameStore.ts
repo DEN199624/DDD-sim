@@ -3766,6 +3766,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return;
         }
 
+        // Block Special Summon of restricted non-DD Extra Deck monsters (c038, c046) if Gilgamesh, Zero King, or Orthros was used
+        if ((cardDef?.cardId === 'c038' || cardDef?.cardId === 'c046') && determinedFromLocation === 'EXTRA_DECK' && (toZone === 'MONSTER_ZONE' || toZone === 'EXTRA_MONSTER_ZONE')) {
+            const isGilgameshUsed = (startState.turnEffectUsage['c017'] || 0) > 0;
+            const isZeroKingUsed = (startState.turnEffectUsage['c034'] || 0) > 0;
+            const isOrthrosHandSSUsed = (startState.turnEffectUsage['c011_hand_ss'] || 0) > 0;
+
+            if (isGilgameshUsed || isZeroKingUsed || isOrthrosHandSSUsed) {
+                const s = get();
+                s.addLog(s.language === 'ja'
+                    ? 'ビルガメス、零王の契約書、またはオルトロスの効果を発動したターン、このカードは特殊召喚できません。'
+                    : 'Cannot Special Summon this card if the effect of Gilgamesh, Dark Contract with the Zero King, or Orthros was activated this turn.');
+                return;
+            }
+        }
+
         // 1. Block Graveyard <-> Banished Drag (User Request)
         if (isDragging && determinedFromLocation === 'GRAVEYARD' && toZone === 'BANISHED') {
             const s = get();
