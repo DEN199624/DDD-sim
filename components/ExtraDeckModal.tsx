@@ -123,7 +123,7 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
         // 4. Link (Refined for Gilgamesh)
         if (card.subType?.includes('LINK')) {
             const storeState = useGameStore.getState();
-            if (card.cardId === 'c038') {
+            if (card.cardId === 'c038' || card.cardId === 'c046') {
                 const isGilgameshUsed = (storeState.turnEffectUsage['c017'] || 0) > 0;
                 const isZeroKingUsed = (storeState.turnEffectUsage['c034'] || 0) > 0;
                 const isOrthrosHandSSUsed = (storeState.turnEffectUsage['c011_hand_ss'] || 0) > 0;
@@ -222,7 +222,7 @@ export function ExtraDeckModal({ isOpen, onClose }: ExtraDeckModalProps) {
         const card = cards[cardId];
         if (!card) return;
 
-        if (card.cardId === 'c038') {
+        if (card.cardId === 'c038' || card.cardId === 'c046') {
             const storeState = useGameStore.getState();
             const isGilgameshUsed = (storeState.turnEffectUsage['c017'] || 0) > 0;
             const isZeroKingUsed = (storeState.turnEffectUsage['c034'] || 0) > 0;
